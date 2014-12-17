@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.23
+// @version     1.24
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -11,6 +11,10 @@
 // ==/UserScript==
 
 // User preferences
+
+/* Most of these settings are meant to be edited using the commands while in google hangouts.
+To access a list of commands, enter the command !? into the text area of hangouts. */
+
 // Chat message blacklist. Use full names.
 var chatBlacklist = [];
 
@@ -21,7 +25,7 @@ var purgeBlacklistedMessages = false;
 // When true, emulates a twitch.tv style of deleting messages, allowing the user to click them to reveal what was said.
 var selectiveHearing = true;
 
-// Keeps scroll position until you scroll back down
+// Keeps scroll position until you scroll back down. Issues on some browser installations
 var enableScrollingFix = true;
 
 // Disable emoticons
@@ -34,21 +38,31 @@ var highlightSoundFilePath = 'https://www.gstatic.com/chat/sounds/hangout_alert_
 // supports #000, #FFFFFF, and rgba(r,g,b,a) as STRING colors
 var highlightColor = 'rgba(255,255,0,0.1)';
 
-// Word sound alerting
+// Word sound alerting. Use Regular Expression
 var soundMatchPatterns = [
 	'.*[Nn][Yy][Aa][Nn][Pp][Aa][Ss][Uu].*',
 	'.*[Nn][Ii][Cc][Oo]\\s[Nn][Ii][Cc][Oo]\\s[Nn][Ii].*',
 	'.*[Tt][Ii][Mm][Oo][Tt][Ee][Ii].*',
-	'.*[Tt][Uu][Tt][Uu][Rr][Uu].*'
+	'.*[Tt][Uu][Tt][Uu][Rr][Uu].*',
+	'.*[Ww][Ee][Hh].*',
+	'.*[Qq]_[Qq].*',
+	'^\/.*[WwBb][Zz][Zz].*',
+	'^\/.*[Ss][Kk][Ii][Tt][Tt][Ee][Rr].*',
+	'.*[Ww][Aa][Nn][Gg][Pp][Aa][Ss][Uu].*'
 ];
 var soundMatchURLs = [
 	'https://dl.dropboxusercontent.com/u/12577282/cnd/nyanpasu.wav',
 	'https://dl.dropboxusercontent.com/u/12577282/cnd/niconiconi.wav',
 	'https://dl.dropboxusercontent.com/u/12577282/cnd/timotei.wav',
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/tuturu.wav'
+	'https://dl.dropboxusercontent.com/u/12577282/cnd/tuturu.wav',
+	'https://dl.dropboxusercontent.com/u/12577282/cnd/weh1.wav',
+	'https://dl.dropboxusercontent.com/u/12577282/cnd/weh2.wav',
+	'https://dl.dropboxusercontent.com/u/12577282/cnd/bzz.wav',
+	'https://dl.dropboxusercontent.com/u/12577282/cnd/skitter.wav',
+	'https://dl.dropboxusercontent.com/u/12577282/cnd/wangpasu3.wav'
 ];
 
-// Focus chat when the window is focused
+// Focus chat text area when the window regains focus
 var focusChatFromBlur = true;
 
 // Replace certain words in your message before they're sent
@@ -64,7 +78,7 @@ var replacementPatterns = [
 	'xoxo'
 ];
 var replacementValues = [
-	'http://pastebin.com/EtrXdhxs',
+	'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js',
 	'¯\\_(ツ)_/¯',
 	'ᕦ༼ຈل͜ຈ༽ᕤ',
 	'ヽ༼ຈل͜ຈ༽ﾉ',
@@ -75,8 +89,9 @@ var replacementValues = [
 	'(づ￣ ³￣)づ'
 ];
 
-
 // * Do not edit below this line * //
+
+// Saves the preferences to local storage
 function savePreferences()
 {
 	if (window['localStorage'] !== null)
@@ -100,6 +115,7 @@ function savePreferences()
 	}
 }
 
+// Loads the preferences from local storage, if they exist
 function loadPreferences()
 {
 	if (window['localStorage'] !== null)
@@ -150,6 +166,7 @@ function loadPreferences()
 	}
 }
 
+// Returns a new element that replicates the hangouts chat line break
 function newChatLineBreak()
 {
 	var chatLineBreak = document.createElement('hr');
@@ -157,6 +174,7 @@ function newChatLineBreak()
 	return chatLineBreak;
 }
 
+// Returns a new element that replicates the hangouts system message
 function newChatLineSystemMessage(message)
 {
 	var outerDiv = document.createElement('div');
@@ -171,6 +189,7 @@ function newChatLineSystemMessage(message)
 	return outerDiv;
 }
 
+// Used to add false system messages to the chat area
 function addSystemMessage(message)
 {
 	if (chat)
@@ -179,9 +198,20 @@ function addSystemMessage(message)
 		chat.scrollTop = chat.scrollHeight;
 	}
 }
+
+// The actual chat area div
 var chat;
+// The text area used to send chat messages
 var textArea;
+// The node of the last received chat message
+/* This is used as a mutation observer object because hangouts does not make a new div in the main chat
+window when the same user posts multiple messages before another user or system message is received */
 var lastMessageNode;
+
+// The chat mutation observer
+/* This watches for any children added to the main chat area div. Based on what it is, it will parse
+the message to purge, highlight, or play sounds. Blacklisted messages are not added to the chat area when 
+purgemode is enabled. */
 var chatObserver = new MutationObserver(function(mutations)
 {
 	mutations.forEach(function(mutation)
@@ -218,12 +248,13 @@ var chatObserver = new MutationObserver(function(mutations)
 				}
 			}
 		}
-		if (enableScrollingFix && fixedScrolling)
-		{
-			chat.scrollTop = fixedScrollingPosition;
-		}
+		scrollFix();
 	});
 });
+
+// The last message mutation observer
+/* This must be used in order to capture and alter messages sent by the same person in succession,
+as the top level mutation observer will not capture changes to its children. */
 var lastMessageObserver = new MutationObserver(function(mutations)
 {
 	mutations.forEach(function(mutation)
@@ -233,21 +264,34 @@ var lastMessageObserver = new MutationObserver(function(mutations)
 			var node = mutation.addedNodes[i];
 			handleNewMessage(lastMessageNode, lastMessageNode.childNodes[0].childNodes[1].childNodes[0].childNodes[0].childNodes[0], node);
 		}
-		if (enableScrollingFix && fixedScrolling)
-		{
-			chat.scrollTop = fixedScrollingPosition;
-		}
+		scrollFix();
 	});
 });
 
+// If the scroll fix is enabled and the user has scrolled, keep the scroll bar in place
+/* Hangouts always scrolls the chat to the maximum when a new message arrives. This is called after 
+the mutation observer so that after hangouts scrolls to the bottom, this scrolls back up to where it
+was. */
+function scrollFix()
+{
+	if (enableScrollingFix && fixedScrolling)
+	{
+		chat.scrollTop = fixedScrollingPosition;
+	}
+}
+
+// Returns the outcome of a regex test
 function regexMatch(text, pattern)
 {
 	var regex = new RegExp(pattern);
 	return regex.test(text);
 }
 
+// Handles new messages
+/* This function deals with the actual content of the message. */
 function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 {
+	// Highlights
 	if (highlightMatchPatterns.length > 0)
 	{
 		var hasPlayed = false;
@@ -277,6 +321,8 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 			}
 		}
 	}
+
+	// Blacklist
 	for (var j = 0; j < chatBlacklist.length; j++)
 	{
 		if (chatBlacklist[j].toLowerCase() == chatMessageSender.nodeValue.toLowerCase())
@@ -307,6 +353,8 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 			}
 		}
 	}
+
+	// Sounds
 	for (var i = 0; i < soundMatchPatterns.length; i++)
 	{
 		var hasPlayed = false;
@@ -327,11 +375,16 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 			}
 		}
 	}
+
+	// Emoticons
 	if (disableEmoticons)
 	{
 		for (var i = 0; i < chatMessageMessage.childNodes.length; i++)
 		{
 			var node = chatMessageMessage.childNodes[i];
+			/* Google handles emoticons in a very straight forward, consistent manner:
+			Emoticons are IMG elements with ALT tags.
+			The ALT tag is always the text that is replaced with the image, so just re-replace it.*/
 			if (node.tagName == 'IMG')
 			{
 				if (node.alt)
@@ -347,6 +400,7 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 	}
 }
 
+// Parses the text that is inside the text area for replacements
 function parseInputText(text)
 {
 	var replacementTuples = [];
@@ -372,12 +426,15 @@ function parseInputText(text)
 	return text;
 }
 
+// The big list of commands
 function performCommand(command)
 {
+	// Commands command
 	if (command[0] === '!?')
 	{
-		addSystemMessage('[hangouts+]: !block user<br>[hangouts+]: !unblock user<br>[hangouts+]: !purgemode [on/off]<br>[hangouts+]: !emoticons [on/off]<br>[hangouts+]: !clear<br>[hangouts+]: !blacklist [clear]<br>[hangouts+]: !highlight regular expression<br>[hangouts+]: !unhighlight regular expression<br>[hangouts+]: !highlights [clear]<br>[hangouts+]: !replace regExp replacement<br>[hangouts+]: !replacements<br>[hangouts+]: !selectivehearing [on/off]<br>[hangouts+]: !alert regExp soundURL<br>[hangouts+]: !alerts');
+		addSystemMessage('[hangouts+]: !block user<br>[hangouts+]: !unblock user<br>[hangouts+]: !purgemode [on/off]<br>[hangouts+]: !emoticons [on/off]<br>[hangouts+]: !clear<br>[hangouts+]: !blacklist [clear]<br>[hangouts+]: !highlight regExp<br>[hangouts+]: !unhighlight regExp<br>[hangouts+]: !highlights [clear]<br>[hangouts+]: !replace regExp replacement<br>[hangouts+]: !replacements<br>[hangouts+]: !selectivehearing [on/off]<br>[hangouts+]: !alert regExp soundURL<br>[hangouts+]: !alerts');
 	}
+	// Blacklist block command
 	else if (command[0] === '!block')
 	{
 		var merged = '';
@@ -392,6 +449,7 @@ function performCommand(command)
 			addSystemMessage('[hangouts+]: Blocked user ' + merged + '.');
 		}
 	}
+	// Blacklist unblock command
 	else if (command[0] === '!unblock')
 	{
 		var merged = '';
@@ -406,6 +464,8 @@ function performCommand(command)
 			addSystemMessage('[hangouts+]: Unblocked user ' + merged);
 		}
 	}
+	// Replacements replace command
+	/* Handles adding, updating, and removing replacements */
 	else if (command[0] === '!replace')
 	{
 		var merged = '';
@@ -443,6 +503,8 @@ function performCommand(command)
 			addSystemMessage('[hangouts+]: Incomplete command.');
 		}
 	}
+	// Sounds alert command
+	/* Handles adding, updating, and removing sound alerts */
 	else if (command[0] === '!alert')
 	{
 		var merged = '';
@@ -480,6 +542,7 @@ function performCommand(command)
 			addSystemMessage('[hangouts+]: Incomplete command.');
 		}
 	}
+	// Replacements list replacements command
 	else if (command[0] === '!replacements')
 	{
 		if (replacementPatterns.length == 0)
@@ -495,6 +558,7 @@ function performCommand(command)
 			}
 		}
 	}
+	// Sound alerts list alerts command
 	else if (command[0] === '!alerts')
 	{
 		if (soundMatchPatterns.length == 0)
@@ -510,6 +574,8 @@ function performCommand(command)
 			}
 		}
 	}
+	// Highlights command
+	/* Handles listing ans clearing all highlights , as well as changing highlight colour */
 	else if (command[0] === '!highlights')
 	{
 		if (highlightMatchPatterns.length == 0)
@@ -526,14 +592,15 @@ function performCommand(command)
 				}
 				addSystemMessage('[hangouts+]: Highlight patterns cleared.');
 			}
-			else if (command[1] === 'trim')
+			// Deprecated
+			/*else if (command[1] === 'trim')
 			{
 				for (var i = 0; i < highlightMatchPatterns.length; i++)
 				{
 					highlightMatchPatterns[i] = highlightMatchPatterns[i].trim();
 				}
 				addSystemMessage('[hangouts+]: Highlight patterns trimmed.');
-			}
+			}*/
 			else if (command[1] === 'color')
 			{
 				if (command.length > 2)
@@ -558,6 +625,7 @@ function performCommand(command)
 			}
 		}
 	}
+	// Highlights add highlight command
 	else if (command[0] === '!highlight')
 	{
 		var merged = '';
@@ -583,6 +651,7 @@ function performCommand(command)
 			addSystemMessage("[hangouts+]: Incomplete command.");
 		}
 	}
+	// Highlights remove highlight command
 	else if (command[0] === '!unhighlight')
 	{
 		var merged = '';
@@ -590,23 +659,25 @@ function performCommand(command)
 		{
 			merged += command[i];
 		}
-    if (merged.length > 0 && merged != "")
-    {
-  		if (highlightMatchPatterns.indexOf(merged) != -1)
-  		{
-  			highlightMatchPatterns.splice(highlightMatchPatterns.indexOf(merged), 1);
-  			addSystemMessage("[hangouts+]: " + merged + ' removed from the highlight list.');
-  		}
-  		else
-  		{
-  			addSystemMessage("[hangouts+]: " + merged + ' is not present in the highlight list.');
-  		}
-    }
-    else
-    {
-      addSystemMessage("[hangouts+]: Incomplete command.");
-    }
+		if (merged.length > 0 && merged != "")
+		{
+			if (highlightMatchPatterns.indexOf(merged) != -1)
+			{
+				highlightMatchPatterns.splice(highlightMatchPatterns.indexOf(merged), 1);
+				addSystemMessage("[hangouts+]: " + merged + ' removed from the highlight list.');
+			}
+			else
+			{
+				addSystemMessage("[hangouts+]: " + merged + ' is not present in the highlight list.');
+			}
+		}
+		else
+		{
+			addSystemMessage("[hangouts+]: Incomplete command.");
+		}
 	}
+	// Black list purge mode command
+	/* Handles toggling and viewing status of purge mode */
 	else if (command[0] === '!purgemode')
 	{
 		if (command[1] === 'on')
@@ -631,6 +702,8 @@ function performCommand(command)
 			}
 		}
 	}
+	// Blacklist selective hearing command
+	/* Handles toggling and viewing status of selective hearing */
 	else if (command[0] === '!selectivehearing')
 	{
 		if (command[1] === 'on')
@@ -655,6 +728,7 @@ function performCommand(command)
 			}
 		}
 	}
+	// Chat clear command
 	else if (command[0] === '!clear')
 	{
 		if (chat)
@@ -663,6 +737,8 @@ function performCommand(command)
 			addSystemMessage('[hangouts+]: Chat has been cleared.');
 		}
 	}
+	// Blacklist list command
+	/* Handles listing and clearing the blacklist */
 	else if (command[0] === '!blacklist')
 	{
 		if (chatBlacklist.length == 0)
@@ -691,6 +767,8 @@ function performCommand(command)
 			}
 		}
 	}
+	// Emoticons command
+	/* Handles toggling and viewing status of emoticons */
 	else if (command[0] === '!emoticons')
 	{
 		if (command[1] === 'on')
@@ -713,19 +791,31 @@ function performCommand(command)
 			}
 		}
 	}
+	// The command didn't exist
 	else
 	{
-		addSystemMessage('[hangouts+]: Invalid option.');
+		addSystemMessage('[hangouts+]: Invalid command.');
 	}
 	savePreferences();
 }
-var chatBlacklistInit = false;
-var customCommandsInit = false;
+// Tracks if the chat blacklist was properly initialized
+var chatInit = false;
+
+// Tracks if the commands were properly initialized
+var textAreaInit = false;
+
+// Tracks if the user has manually scrolled the scrollbar
+/* There is currently an issue where this is set to true outside of normal conditions */
 var fixedScrolling = false;
+
+// Keeps track of where the scrollbar is
 var fixedScrollingPosition = 0;
+
+// The main observer used to load and intialize the script
 var hangoutObserver = new MutationObserver(function(mutations)
 {
-	if (!chatBlacklistInit)
+	// Chat initialization
+	if (!chatInit)
 	{
 		chat = document.querySelector('.pq-pA');
 		chat.onscroll = function()
@@ -751,11 +841,12 @@ var hangoutObserver = new MutationObserver(function(mutations)
 				childList: true,
 				characterData: true
 			});
-			chatBlacklistInit = true;
-			console.log('[hangout+]: Chat Blacklist initialized');
+			chatInit = true;
 		}
 	}
-	if (!customCommandsInit)
+
+	// Text area initialization
+	if (!textAreaInit)
 	{
 		textArea = document.querySelector('.Zj');
 		if (textArea)
@@ -786,11 +877,10 @@ var hangoutObserver = new MutationObserver(function(mutations)
 					}
 				}
 			}
-			customCommandsInit = true;
-			console.log('[hangout+]: Custom Commands initialized');
+			textAreaInit = true;
 		}
 	}
-	if (chatBlacklistInit && customCommandsInit)
+	if (chatInit && textAreaInit)
 	{
 		loadPreferences();
 		// Focus the text area when the window becomes focused
@@ -802,6 +892,7 @@ var hangoutObserver = new MutationObserver(function(mutations)
 			}
 		});
 		hangoutObserver.disconnect();
+		addSystemMessage('[hangouts+]: Plugin initialized.');
 	}
 });
 hangoutObserver.disconnect();
