@@ -3,111 +3,165 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.3
+// @version     1.31
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @downloadURL https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js
 // ==/UserScript==
 
+// Variable initialization
+// DO NOT SET THESE. MAKE CHANGES TO THE initializeVariables FUNCTION BELOW.
+var chatBlacklist;
+var purgeBlacklistedMessages;
+var selectiveHearing;
+var enableScrollingFix;
+var disableEmoticons;
+var highlightMatchPatterns;
+var highlightSoundFilePath;
+var highlightColor;
+var soundMatchPatterns;
+var soundMatchURLs;
+var focusChatFromBlur;
+var replacementPatterns
+var replacementValues;
+
 // User preferences
+// THESE PREFERENCES ARE INITIAL INSTALL PREFERENCES.
+// MAKING CHANGES TO THIS LIST WILL NOT HAVE AN EFFECT UNLESS LOCALSTORAGE IS DISABLED OR
+// THE FACTORY RESET COMMAND IS USED, AT WHICH POINT RELOADING THE SCRIPT WILL LOAD AND SAVE
+// THESE PREFERENCES.
 
 /* Most of these settings are meant to be edited using the commands while in google hangouts.
-To access a list of commands, enter the command !? into the text area of hangouts. */
+To access a list of commands, enter the command !? into the chat. */
 
-// Chat message blacklist. Use full names.
-var chatBlacklist = [];
+function initializeVariables()
+{
+	// Chat message blacklist. Use full names.
+	chatBlacklist = [];
 
-// When true users on the blacklist have their messages completely removed without a trace.
-// When false, their entry will appear in the chatbox, but their message will be replaced with "<message deleted>"
-var purgeBlacklistedMessages = false;
+	// When true users on the blacklist have their messages completely removed without a trace.
+	// When false, their entry will appear in the chatbox, but their message will be replaced with "<message deleted>"
+	purgeBlacklistedMessages = false;
 
-// When true, emulates a twitch.tv style of deleting messages, allowing the user to click them to reveal what was said.
-var selectiveHearing = true;
+	// When true, emulates a twitch.tv style of deleting messages, allowing the user to click them to reveal what was said.
+	selectiveHearing = true;
 
-// Keeps scroll position until you scroll back down. Issues on some browser installations
-var enableScrollingFix = true;
+	// Keeps scroll position until you scroll back down. Issues on some browser installations
+	enableScrollingFix = true;
 
-// Disable emoticons
-var disableEmoticons = true;
+	// Disable emoticons
+	disableEmoticons = true;
 
-// Word highlighting
-var highlightMatchPatterns = [];
-var highlightSoundFilePath = 'https://www.gstatic.com/chat/sounds/hangout_alert_cc041792a9494bf2cb95e160aae459fe.mp3';
+	// Word highlighting
+	highlightMatchPatterns = [];
+	highlightSoundFilePath = 'https://www.gstatic.com/chat/sounds/hangout_alert_cc041792a9494bf2cb95e160aae459fe.mp3';
 
-// supports #000, #FFFFFF, and rgba(r,g,b,a) as STRING colors
-var highlightColor = 'rgba(255,255,0,0.1)';
+	// supports #000, #FFFFFF, and rgba(r,g,b,a) as STRING colors
+	highlightColor = 'rgba(255,255,0,0.1)';
 
-// Word sound alerting. Use Regular Expression
-var soundMatchPatterns = [
-	'.*[Nn][Yy][Aa][Nn][Pp][Aa][Ss][Uu].*'//,
-	//'.*[Nn][Ii][Cc][Oo]\\s[Nn][Ii][Cc][Oo]\\s[Nn][Ii].*',
-	//'.*[Tt][Ii][Mm][Oo][Tt][Ee][Ii].*',
-	//'.*[Tt][Uu][Tt][Uu][Rr][Uu].*',
-	//'.*[Ww][Ee][Hh].*',
-	//'.*[Qq]_[Qq].*',
-	//'^\/.*[WwBb][Zz][Zz].*',
-	//'^\/.*[Ss][Kk][Ii][Tt][Tt][Ee][Rr].*',
-	//'.*[Ww][Aa][Nn][Gg][Pp][Aa][Ss][Uu].*'
-];
-var soundMatchURLs = [
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/nyanpasu.wav'//,
-	//'https://dl.dropboxusercontent.com/u/12577282/cnd/niconiconi.wav',
-	//'https://dl.dropboxusercontent.com/u/12577282/cnd/timotei.wav',
-	//'https://dl.dropboxusercontent.com/u/12577282/cnd/tuturu.wav',
-	//'https://dl.dropboxusercontent.com/u/12577282/cnd/weh1.wav',
-	//'https://dl.dropboxusercontent.com/u/12577282/cnd/weh2.wav',
-	//'https://dl.dropboxusercontent.com/u/12577282/cnd/bzz.wav',
-	//'https://dl.dropboxusercontent.com/u/12577282/cnd/skitter.wav',
-	//'https://dl.dropboxusercontent.com/u/12577282/cnd/wangpasu3.wav'
-];
+	// Word sound alerting. Use Regular Expression
+	soundMatchPatterns = [
+		'.*[Nn][Yy][Aa][Nn][Pp][Aa][Ss][Uu].*'//,
+		//'.*[Nn][Ii][Cc][Oo]\\s[Nn][Ii][Cc][Oo]\\s[Nn][Ii].*',
+		//'.*[Tt][Ii][Mm][Oo][Tt][Ee][Ii].*',
+		//'.*[Tt][Uu][Tt][Uu][Rr][Uu].*',
+		//'.*[Ww][Ee][Hh].*',
+		//'.*[Qq]_[Qq].*',
+		//'^\/.*[WwBb][Zz][Zz].*',
+		//'^\/.*[Ss][Kk][Ii][Tt][Tt][Ee][Rr].*',
+		//'.*[Ww][Aa][Nn][Gg][Pp][Aa][Ss][Uu].*'
+	];
+	soundMatchURLs = [
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/nyanpasu.wav'//,
+		//'https://dl.dropboxusercontent.com/u/12577282/cnd/niconiconi.wav',
+		//'https://dl.dropboxusercontent.com/u/12577282/cnd/timotei.wav',
+		//'https://dl.dropboxusercontent.com/u/12577282/cnd/tuturu.wav',
+		//'https://dl.dropboxusercontent.com/u/12577282/cnd/weh1.wav',
+		//'https://dl.dropboxusercontent.com/u/12577282/cnd/weh2.wav',
+		//'https://dl.dropboxusercontent.com/u/12577282/cnd/bzz.wav',
+		//'https://dl.dropboxusercontent.com/u/12577282/cnd/skitter.wav',
+		//'https://dl.dropboxusercontent.com/u/12577282/cnd/wangpasu3.wav'
+	];
+	// Focus chat text area when the window regains focus
+	focusChatFromBlur = true;
 
-// Focus chat text area when the window regains focus
-var focusChatFromBlur = true;
-
-// Replace certain words in your message before they're sent
-var replacementPatterns = [
-	'/scripturl'//,
-	//'/sup',
-	//'/flex',
-	//'/raise',
-	//'/sparkles',
-	//'/eyebrows',
-	//'/shock',
-	//'o_/',
-	//'xoxo'
-];
-var replacementValues = [
-	'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js'//,
-	//'¯\\_(ツ)_/¯',
-	//'ᕦ༼ຈل͜ຈ༽ᕤ',
-	//'ヽ༼ຈل͜ຈ༽ﾉ',
-	//'(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
-	//'( ͡° ͜ʖ ͡°)',
-	//'∑(゜Д゜;)',
-	//'´ ▽ ` )ﾉ',
-	//'(づ￣ ³￣)づ'
-];
+	// Replace certain words in your message before they're sent
+	replacementPatterns = [
+		'/scripturl',
+		'/sup',
+		'/flex',
+		'/raise',
+		'/sparkles',
+		'/lenny',
+		'/shock',
+		'o_/',
+		'/xoxo',
+		'/highfive',
+		'/kick',
+		'/denko',
+		'/pat',
+		'=)',
+		'8|',
+		'>:(',
+		'/stare',
+		'/lie',
+		'/success',
+		'/devil',
+		'/stab',
+		'/dunno',
+		'/huh',
+		'/wat',
+		'/cry',
+		'/sigh',
+		'/woohoo',
+		'/crawl',
+		'/yummy'
+	];
+	replacementValues = [
+		'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js',
+		'¯\\_(ツ)_/¯',
+		'ᕦ༼ຈل͜ຈ༽ᕤ',
+		'ヽ༼ຈل͜ຈ༽ﾉ',
+		'(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
+		'( ͡° ͜ʖ ͡°)',
+		'∑(゜Д゜;)',
+		'´ ▽ ` )ﾉ',
+		'(づ￣ ³￣)づ',
+		'(´▽｀)人(´▽｀)',
+		'ヽ(#ﾟДﾟ)ﾉ┌┛Σ(ノ´Д`)ノ',
+		'(´･ω･`)',
+		'(ｏ・_・)ノ”(. _ . )',
+		'(๑╹◡╹)',
+		'(⌐■_■)',
+		'(　ﾉ｡ÒㅅÓ)ﾉ',
+		'(=ↀωↀ=)✧',
+		'∠( ᐛ 」∠)＿',
+		'(•̀ᴗ•́)و ̑̑',
+		'←～（o ｀▽´ )oΨ',
+		'∋━━o(｀∀´oメ）～→',
+		'(」ﾟヘﾟ)」',
+		'( ?´_ゝ｀)',
+		'(⊙_☉)',
+		'o(╥﹏╥)o',
+		'(一。一;;）',
+		'Ｏ(≧▽≦)Ｏ',
+		'_:(´ཀ`」 ∠):_',
+		'ヽ(๑╹ڡ╹๑)ﾉ'
+	];
+}
 
 // * Do not edit below this line * //
 
 // Saves the preferences to local storage
 function savePreferences()
 {
-	if (window['localStorage'] !== null)
+	if (localsStorageTest())
 	{
-		/*localStorage['blacklist'] = JSON.stringify(chatBlacklist);
-		localStorage['highlightMatchPatterns'] = JSON.stringify(highlightMatchPatterns);
-		localStorage['highlightColor'] = highlightColor;
-		localStorage['replacementPatterns'] = JSON.stringify(replacementPatterns);
-		localStorage['replacementValues'] = JSON.stringify(replacementValues);
-		localStorage['soundMatchPatterns'] = JSON.stringify(soundMatchPatterns);
-		localStorage['soundMatchURLs'] = JSON.stringify(soundMatchURLs);
-		localStorage['selectiveHearing'] = selectiveHearing;*/
 		localStorage.setItem('blacklist',JSON.stringify(chatBlacklist));
 		localStorage.setItem('highlightMatchPatterns',JSON.stringify(highlightMatchPatterns));
 		localStorage.setItem('replacementPatterns',JSON.stringify(replacementPatterns));
-		localStorage.setItem('replacementValues',JSON.stringify(chatBlacklist));
+		localStorage.setItem('replacementValues',JSON.stringify(replacementValues));
 		localStorage.setItem('soundMatchPatterns',JSON.stringify(soundMatchPatterns));
 		localStorage.setItem('soundMatchURLs',JSON.stringify(soundMatchURLs));
 		localStorage.setItem('highlightColor',highlightColor);
@@ -121,6 +175,20 @@ function savePreferences()
 			localStorage.setItem('purgemode', 'off');
 		}
 	}
+}
+
+// Test if localstorage is available
+// From http://modernizr.com/
+function localsStorageTest()
+{
+    var test = 'test';
+    try {
+        localStorage.setItem(test, test);
+        localStorage.removeItem(test);
+        return true;
+    } catch(e) {
+        return false;
+    }
 }
 
 // Loads the preferences from local storage, if they exist
@@ -817,7 +885,8 @@ function performCommand(command)
 	else if ( command[0] === '!factoryreset')
 	{
 		clearPreferences();
-		addSystemMessage('[hangouts+]: Preferences cleared. Refresh to load defaults.');
+		initializeVariables();
+		addSystemMessage('[hangouts+]: Preferences cleared.');
 	}
 	// The command didn't exist
 	else
@@ -923,6 +992,7 @@ var hangoutObserver = new MutationObserver(function(mutations)
 		addSystemMessage('[hangouts+]: Plugin initialized.');
 	}
 });
+initializeVariables();
 hangoutObserver.disconnect();
 hangoutObserver.observe(document.querySelector('body'),
 {
