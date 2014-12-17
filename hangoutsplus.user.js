@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.31
+// @version     1.32
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -101,9 +101,9 @@ function initializeVariables()
 		'/kick',
 		'/denko',
 		'/pat',
-		'=)',
-		'8|',
-		'>:(',
+		'=\\)',
+		'8\\|',
+		'>:\\(',
 		'/stare',
 		'/lie',
 		'/success',
@@ -131,7 +131,7 @@ function initializeVariables()
 		'(´▽｀)人(´▽｀)',
 		'ヽ(#ﾟДﾟ)ﾉ┌┛Σ(ノ´Д`)ノ',
 		'(´･ω･`)',
-		'(ｏ・_・)ノ”(. _ . )',
+		'(ｏ・_・)ノ(. _ . )',
 		'(๑╹◡╹)',
 		'(⌐■_■)',
 		'(　ﾉ｡ÒㅅÓ)ﾉ',
@@ -494,6 +494,10 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 function parseInputText(text)
 {
 	var replacementTuples = [];
+	if ( replacementPatterns.length != replacementValues.length )
+	{
+		addSystemMessage('[hangouts+]: Replacement value/pattern count mismatch.');
+	}
 	for (var i = 0; i < replacementPatterns.length; i++)
 	{
 		replacementTuples.push(
@@ -506,11 +510,21 @@ function parseInputText(text)
 	{
 		return b.pattern.length - a.pattern.length;
 	});
+	var originalText = text;
 	for (var i = 0; i < replacementTuples.length; i++)
 	{
-		if (regexMatch(text, replacementTuples[i].pattern))
+		try
 		{
-			text = text.replace(new RegExp(replacementTuples[i].pattern, 'g'), replacementTuples[i].value);
+			if (regexMatch(text, replacementTuples[i].pattern))
+			{
+				text = text.replace(new RegExp(replacementTuples[i].pattern, 'g'), replacementTuples[i].value);
+			}
+		}
+		catch( exception)
+		{
+			addSystemMessage("replacement failed on " + replacementTuples[i].pattern + ". Probably malformed regex.");
+			text = originalText;
+			break;
 		}
 	}
 	return text;
