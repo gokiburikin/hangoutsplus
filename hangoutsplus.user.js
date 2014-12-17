@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.24
+// @version     1.3
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -40,26 +40,26 @@ var highlightColor = 'rgba(255,255,0,0.1)';
 
 // Word sound alerting. Use Regular Expression
 var soundMatchPatterns = [
-	'.*[Nn][Yy][Aa][Nn][Pp][Aa][Ss][Uu].*',
-	'.*[Nn][Ii][Cc][Oo]\\s[Nn][Ii][Cc][Oo]\\s[Nn][Ii].*',
-	'.*[Tt][Ii][Mm][Oo][Tt][Ee][Ii].*',
-	'.*[Tt][Uu][Tt][Uu][Rr][Uu].*',
-	'.*[Ww][Ee][Hh].*',
-	'.*[Qq]_[Qq].*',
-	'^\/.*[WwBb][Zz][Zz].*',
-	'^\/.*[Ss][Kk][Ii][Tt][Tt][Ee][Rr].*',
-	'.*[Ww][Aa][Nn][Gg][Pp][Aa][Ss][Uu].*'
+	'.*[Nn][Yy][Aa][Nn][Pp][Aa][Ss][Uu].*'//,
+	//'.*[Nn][Ii][Cc][Oo]\\s[Nn][Ii][Cc][Oo]\\s[Nn][Ii].*',
+	//'.*[Tt][Ii][Mm][Oo][Tt][Ee][Ii].*',
+	//'.*[Tt][Uu][Tt][Uu][Rr][Uu].*',
+	//'.*[Ww][Ee][Hh].*',
+	//'.*[Qq]_[Qq].*',
+	//'^\/.*[WwBb][Zz][Zz].*',
+	//'^\/.*[Ss][Kk][Ii][Tt][Tt][Ee][Rr].*',
+	//'.*[Ww][Aa][Nn][Gg][Pp][Aa][Ss][Uu].*'
 ];
 var soundMatchURLs = [
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/nyanpasu.wav',
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/niconiconi.wav',
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/timotei.wav',
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/tuturu.wav',
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/weh1.wav',
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/weh2.wav',
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/bzz.wav',
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/skitter.wav',
-	'https://dl.dropboxusercontent.com/u/12577282/cnd/wangpasu3.wav'
+	'https://dl.dropboxusercontent.com/u/12577282/cnd/nyanpasu.wav'//,
+	//'https://dl.dropboxusercontent.com/u/12577282/cnd/niconiconi.wav',
+	//'https://dl.dropboxusercontent.com/u/12577282/cnd/timotei.wav',
+	//'https://dl.dropboxusercontent.com/u/12577282/cnd/tuturu.wav',
+	//'https://dl.dropboxusercontent.com/u/12577282/cnd/weh1.wav',
+	//'https://dl.dropboxusercontent.com/u/12577282/cnd/weh2.wav',
+	//'https://dl.dropboxusercontent.com/u/12577282/cnd/bzz.wav',
+	//'https://dl.dropboxusercontent.com/u/12577282/cnd/skitter.wav',
+	//'https://dl.dropboxusercontent.com/u/12577282/cnd/wangpasu3.wav'
 ];
 
 // Focus chat text area when the window regains focus
@@ -67,26 +67,26 @@ var focusChatFromBlur = true;
 
 // Replace certain words in your message before they're sent
 var replacementPatterns = [
-	'/scripturl',
-	'/sup',
-	'/flex',
-	'/raise',
-	'/sparkles',
-	'/eyebrows',
-	'/shock',
-	'o_/',
-	'xoxo'
+	'/scripturl'//,
+	//'/sup',
+	//'/flex',
+	//'/raise',
+	//'/sparkles',
+	//'/eyebrows',
+	//'/shock',
+	//'o_/',
+	//'xoxo'
 ];
 var replacementValues = [
-	'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js',
-	'¯\\_(ツ)_/¯',
-	'ᕦ༼ຈل͜ຈ༽ᕤ',
-	'ヽ༼ຈل͜ຈ༽ﾉ',
-	'(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
-	'( ͡° ͜ʖ ͡°)',
-	'∑(゜Д゜;)',
-	'´ ▽ ` )ﾉ',
-	'(づ￣ ³￣)づ'
+	'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js'//,
+	//'¯\\_(ツ)_/¯',
+	//'ᕦ༼ຈل͜ຈ༽ᕤ',
+	//'ヽ༼ຈل͜ຈ༽ﾉ',
+	//'(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
+	//'( ͡° ͜ʖ ͡°)',
+	//'∑(゜Д゜;)',
+	//'´ ▽ ` )ﾉ',
+	//'(づ￣ ³￣)づ'
 ];
 
 // * Do not edit below this line * //
@@ -96,21 +96,29 @@ function savePreferences()
 {
 	if (window['localStorage'] !== null)
 	{
-		localStorage['blacklist'] = JSON.stringify(chatBlacklist);
+		/*localStorage['blacklist'] = JSON.stringify(chatBlacklist);
 		localStorage['highlightMatchPatterns'] = JSON.stringify(highlightMatchPatterns);
 		localStorage['highlightColor'] = highlightColor;
 		localStorage['replacementPatterns'] = JSON.stringify(replacementPatterns);
 		localStorage['replacementValues'] = JSON.stringify(replacementValues);
 		localStorage['soundMatchPatterns'] = JSON.stringify(soundMatchPatterns);
 		localStorage['soundMatchURLs'] = JSON.stringify(soundMatchURLs);
-		localStorage['selectiveHearing'] = selectiveHearing;
+		localStorage['selectiveHearing'] = selectiveHearing;*/
+		localStorage.setItem('blacklist',JSON.stringify(chatBlacklist));
+		localStorage.setItem('highlightMatchPatterns',JSON.stringify(highlightMatchPatterns));
+		localStorage.setItem('replacementPatterns',JSON.stringify(replacementPatterns));
+		localStorage.setItem('replacementValues',JSON.stringify(chatBlacklist));
+		localStorage.setItem('soundMatchPatterns',JSON.stringify(soundMatchPatterns));
+		localStorage.setItem('soundMatchURLs',JSON.stringify(soundMatchURLs));
+		localStorage.setItem('highlightColor',highlightColor);
+		localStorage.setItem('selectiveHearing',selectiveHearing);
 		if (purgeBlacklistedMessages)
 		{
-			localStorage.purgemode = 'on';
+			localStorage.setItem('purgemode','on');
 		}
 		else
 		{
-			localStorage.purgemode = 'off';
+			localStorage.setItem('purgemode', 'off');
 		}
 	}
 }
@@ -120,41 +128,41 @@ function loadPreferences()
 {
 	if (window['localStorage'] !== null)
 	{
-		if (localStorage['blacklist'])
+		if (localStorage.getItem('blacklist'))
 		{
-			chatBlacklist = JSON.parse(localStorage['blacklist']);
+			chatBlacklist = JSON.parse(localStorage.getItem('blacklist'));
 		}
-		if (localStorage['highlightMatchPatterns'])
+		if (localStorage.getItem('highlightMatchPatterns'))
 		{
-			highlightMatchPatterns = JSON.parse(localStorage['highlightMatchPatterns']);
+			highlightMatchPatterns = JSON.parse(localStorage.getItem('highlightMatchPatterns'));
 		}
-		if (localStorage['highlightColor'])
+		if (localStorage.getItem('highlightColor'))
 		{
-			highlightColor = localStorage['highlightColor'];
+			highlightColor = localStorage.getItem('highlightColor');
 		}
-		if (localStorage['replacementPatterns'])
+		if (localStorage.getItem('replacementPatterns'))
 		{
-			replacementPatterns = JSON.parse(localStorage['replacementPatterns']);
+			replacementPatterns = JSON.parse(localStorage.getItem('replacementPatterns'));
 		}
-		if (localStorage['replacementValues'])
+		if (localStorage.getItem('replacementValues'))
 		{
-			replacementValues = JSON.parse(localStorage['replacementValues']);
+			replacementValues = JSON.parse(localStorage.getItem('replacementValues'));
 		}
-		if (localStorage['soundMatchPatterns'])
+		if (localStorage.getItem('soundMatchPatterns'))
 		{
-			soundMatchPatterns = JSON.parse(localStorage['soundMatchPatterns']);
+			soundMatchPatterns = JSON.parse(localStorage.getItem('soundMatchPatterns'));
 		}
-		if (localStorage['soundMatchURLs'])
+		if (localStorage.getItem('soundMatchURLs'))
 		{
-			soundMatchURLs = JSON.parse(localStorage['soundMatchURLs']);
+			soundMatchURLs = JSON.parse(localStorage.getItem('soundMatchURLs'));
 		}
-		if (localStorage['selectiveHearing'])
+		if (localStorage.getItem('selectiveHearing'))
 		{
-			selectiveHearing = localStorage['selectiveHearing'];
+			selectiveHearing = localStorage.getItem('selectiveHearing');
 		}
-		if (localStorage['purgeMode'])
+		if (localStorage.getItem('purgeMode'))
 		{
-			if (localStorage['purgeMode'] == 'on')
+			if (localStorage.getItem('purgeMode') == 'on')
 			{
 				purgeBlacklistedMessages = true;
 			}
@@ -164,6 +172,20 @@ function loadPreferences()
 			}
 		}
 	}
+}
+
+// Clears the preferences from local storage
+function clearPreferences()
+{
+	localStorage.removeItem('blacklist');
+	localStorage.removeItem('highlightMatchPatterns');
+	localStorage.removeItem('replacementPatterns');
+	localStorage.removeItem('replacementValues');
+	localStorage.removeItem('soundMatchPatterns');
+	localStorage.removeItem('soundMatchURLs');
+	localStorage.removeItem('highlightColor');
+	localStorage.removeItem('selectiveHearing');
+	localStorage.removeItem('purgemode');
 }
 
 // Returns a new element that replicates the hangouts chat line break
@@ -432,7 +454,7 @@ function performCommand(command)
 	// Commands command
 	if (command[0] === '!?')
 	{
-		addSystemMessage('[hangouts+]: !block user<br>[hangouts+]: !unblock user<br>[hangouts+]: !purgemode [on/off]<br>[hangouts+]: !emoticons [on/off]<br>[hangouts+]: !clear<br>[hangouts+]: !blacklist [clear]<br>[hangouts+]: !highlight regExp<br>[hangouts+]: !unhighlight regExp<br>[hangouts+]: !highlights [clear]<br>[hangouts+]: !replace regExp replacement<br>[hangouts+]: !replacements<br>[hangouts+]: !selectivehearing [on/off]<br>[hangouts+]: !alert regExp soundURL<br>[hangouts+]: !alerts');
+		addSystemMessage('[hangouts+]: !block user<br>[hangouts+]: !unblock user<br>[hangouts+]: !purgemode [on/off]<br>[hangouts+]: !emoticons [on/off]<br>[hangouts+]: !clear<br>[hangouts+]: !blacklist [clear]<br>[hangouts+]: !highlight regExp<br>[hangouts+]: !unhighlight regExp<br>[hangouts+]: !highlights [clear]<br>[hangouts+]: !replace regExp replacement<br>[hangouts+]: !replacements<br>[hangouts+]: !selectivehearing [on/off]<br>[hangouts+]: !alert regExp soundURL<br>[hangouts+]: !alerts<br>[hangouts+]: !factoryreset');
 	}
 	// Blacklist block command
 	else if (command[0] === '!block')
@@ -790,6 +812,12 @@ function performCommand(command)
 				addSystemMessage('[hangouts+]: Emoticons are off.');
 			}
 		}
+	}
+	// Reset all the preferences back to factory defaults
+	else if ( command[0] === '!factoryreset')
+	{
+		clearPreferences();
+		addSystemMessage('[hangouts+]: Preferences cleared. Refresh to load defaults.');
 	}
 	// The command didn't exist
 	else
