@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.32
+// @version     1.33
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -929,21 +929,6 @@ var hangoutObserver = new MutationObserver(function(mutations)
 	if (!chatInit)
 	{
 		chat = document.querySelector('.pq-pA');
-		chat.onscroll = function()
-		{
-			if (enableScrollingFix)
-			{
-				if (chat.scrollTop != chat.scrollHeight - chat.clientHeight)
-				{
-					fixedScrolling = true;
-					fixedScrollingPosition = chat.scrollTop;
-				}
-				else
-				{
-					fixedScrolling = false;
-				}
-			}
-		}
 		if (chat && chatObserver)
 		{
 			chatObserver.observe(chat,
@@ -952,6 +937,21 @@ var hangoutObserver = new MutationObserver(function(mutations)
 				childList: true,
 				characterData: true
 			});
+			chat.onscroll = function()
+			{
+				if (enableScrollingFix)
+				{
+					if (chat.scrollTop != chat.scrollHeight - chat.clientHeight)
+					{
+						fixedScrolling = true;
+						fixedScrollingPosition = chat.scrollTop;
+					}
+					else
+					{
+						fixedScrolling = false;
+					}
+				}
+			}
 			chatInit = true;
 		}
 	}
@@ -962,7 +962,6 @@ var hangoutObserver = new MutationObserver(function(mutations)
 		textArea = document.querySelector('.Zj');
 		if (textArea)
 		{
-			console.log(textArea);
 			textArea.onkeydown = function(event)
 			{
 				if (event.shiftKey)
