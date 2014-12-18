@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.33
+// @version     1.34
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -62,7 +62,7 @@ function initializeVariables()
 
 	// Word sound alerting. Use Regular Expression
 	soundMatchPatterns = [
-		'.*[Nn][Yy][Aa][Nn][Pp][Aa][Ss][Uu].*'//,
+		'.*[Nn][Yy][Aa][Nn][Pp][Aa][Ss][Uu].*' //,
 		//'.*[Nn][Ii][Cc][Oo]\\s[Nn][Ii][Cc][Oo]\\s[Nn][Ii].*',
 		//'.*[Tt][Ii][Mm][Oo][Tt][Ee][Ii].*',
 		//'.*[Tt][Uu][Tt][Uu][Rr][Uu].*',
@@ -73,7 +73,7 @@ function initializeVariables()
 		//'.*[Ww][Aa][Nn][Gg][Pp][Aa][Ss][Uu].*'
 	];
 	soundMatchURLs = [
-		'https://dl.dropboxusercontent.com/u/12577282/cnd/nyanpasu.wav'//,
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/nyanpasu.wav' //,
 		//'https://dl.dropboxusercontent.com/u/12577282/cnd/niconiconi.wav',
 		//'https://dl.dropboxusercontent.com/u/12577282/cnd/timotei.wav',
 		//'https://dl.dropboxusercontent.com/u/12577282/cnd/tuturu.wav',
@@ -116,7 +116,9 @@ function initializeVariables()
 		'/sigh',
 		'/woohoo',
 		'/crawl',
-		'/yummy'
+		'/yummy',
+		'/escape',
+		'/sorry'
 	];
 	replacementValues = [
 		'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js',
@@ -147,7 +149,9 @@ function initializeVariables()
 		'(一。一;;）',
 		'Ｏ(≧▽≦)Ｏ',
 		'_:(´ཀ`」 ∠):_',
-		'ヽ(๑╹ڡ╹๑)ﾉ'
+		'ヽ(๑╹ڡ╹๑)ﾉ',
+		'C= C= C= ┌(;・ω・)┘',
+		'๑•́ㅿ•̀๑)'
 	];
 }
 
@@ -156,89 +160,78 @@ function initializeVariables()
 // Saves the preferences to local storage
 function savePreferences()
 {
-	if (localsStorageTest())
+	try
 	{
-		localStorage.setItem('blacklist',JSON.stringify(chatBlacklist));
-		localStorage.setItem('highlightMatchPatterns',JSON.stringify(highlightMatchPatterns));
-		localStorage.setItem('replacementPatterns',JSON.stringify(replacementPatterns));
-		localStorage.setItem('replacementValues',JSON.stringify(replacementValues));
-		localStorage.setItem('soundMatchPatterns',JSON.stringify(soundMatchPatterns));
-		localStorage.setItem('soundMatchURLs',JSON.stringify(soundMatchURLs));
-		localStorage.setItem('highlightColor',highlightColor);
-		localStorage.setItem('selectiveHearing',selectiveHearing);
-		if (purgeBlacklistedMessages)
+		if (localStorageTest())
 		{
-			localStorage.setItem('purgemode','on');
-		}
-		else
-		{
-			localStorage.setItem('purgemode', 'off');
+			localStorage.setItem('blacklist', JSON.stringify(chatBlacklist));
+			localStorage.setItem('highlightMatchPatterns', JSON.stringify(highlightMatchPatterns));
+			localStorage.setItem('replacementPatterns', JSON.stringify(replacementPatterns));
+			localStorage.setItem('replacementValues', JSON.stringify(replacementValues));
+			localStorage.setItem('soundMatchPatterns', JSON.stringify(soundMatchPatterns));
+			localStorage.setItem('soundMatchURLs', JSON.stringify(soundMatchURLs));
+			localStorage.setItem('highlightColor', JSON.stringify(highlightColor));
+			localStorage.setItem('selectiveHearing', JSON.stringify(selectiveHearing));
+			localStorage.setItem('purgeMode', JSON.stringify(purgeBlacklistedMessages));
+			localStorage.setItem('enableScrollingFix', JSON.stringify(enableScrollingFix));
 		}
 	}
-}
-
-// Test if localstorage is available
-// From http://modernizr.com/
-function localsStorageTest()
-{
-    var test = 'test';
-    try {
-        localStorage.setItem(test, test);
-        localStorage.removeItem(test);
-        return true;
-    } catch(e) {
-        return false;
-    }
+	catch (exception)
+	{
+		console.log("[hangouts+]: Failed to save preferences.");
+	}
 }
 
 // Loads the preferences from local storage, if they exist
 function loadPreferences()
 {
-	if (window['localStorage'] !== null)
+	try
 	{
-		if (localStorage.getItem('blacklist'))
+		if (localStorageTest())
 		{
-			chatBlacklist = JSON.parse(localStorage.getItem('blacklist'));
+			chatBlacklist = tryLoadPreference('blacklist', chatBlacklist);
+			highlightMatchPatterns = tryLoadPreference('highlightMatchPatterns', highlightMatchPatterns);
+			highlightColor = tryLoadPreference('highlightColor', highlightColor);
+			replacementPatterns = tryLoadPreference('replacementPatterns', replacementPatterns);
+			replacementValues = tryLoadPreference('replacementValues', replacementValues);
+			soundMatchPatterns = tryLoadPreference('soundMatchPatterns', soundMatchPatterns);
+			soundMatchURLs = tryLoadPreference('soundMatchURLs', soundMatchURLs);
+			selectiveHearing = tryLoadPreference('selectiveHearing', selectiveHearing);
+			purgeBlacklistedMessages = tryLoadPreference('purgeMode', purgeBlacklistedMessages);
+			enableScrollingFix = tryLoadPreference('enableScrollingFix', enableScrollingFix);
 		}
-		if (localStorage.getItem('highlightMatchPatterns'))
-		{
-			highlightMatchPatterns = JSON.parse(localStorage.getItem('highlightMatchPatterns'));
-		}
-		if (localStorage.getItem('highlightColor'))
-		{
-			highlightColor = localStorage.getItem('highlightColor');
-		}
-		if (localStorage.getItem('replacementPatterns'))
-		{
-			replacementPatterns = JSON.parse(localStorage.getItem('replacementPatterns'));
-		}
-		if (localStorage.getItem('replacementValues'))
-		{
-			replacementValues = JSON.parse(localStorage.getItem('replacementValues'));
-		}
-		if (localStorage.getItem('soundMatchPatterns'))
-		{
-			soundMatchPatterns = JSON.parse(localStorage.getItem('soundMatchPatterns'));
-		}
-		if (localStorage.getItem('soundMatchURLs'))
-		{
-			soundMatchURLs = JSON.parse(localStorage.getItem('soundMatchURLs'));
-		}
-		if (localStorage.getItem('selectiveHearing'))
-		{
-			selectiveHearing = localStorage.getItem('selectiveHearing');
-		}
-		if (localStorage.getItem('purgeMode'))
-		{
-			if (localStorage.getItem('purgeMode') == 'on')
-			{
-				purgeBlacklistedMessages = true;
-			}
-			else
-			{
-				purgeBlacklistedMessages = false;
-			}
-		}
+	}
+	catch (exception)
+	{
+		console.log("[hangouts+]: Failed to load preferences.");
+	}
+}
+
+// Attempt to find and parse a user preference. If it fails, use the default value.
+function tryLoadPreference(preference, defaultValue)
+{
+	var output = defaultValue;
+	if (localStorage.getItem(preference))
+	{
+		output = JSON.parse(localStorage.getItem(preference));
+	}
+	return output;
+}
+
+// Test if localstorage is available
+// From http://modernizr.com/
+function localStorageTest()
+{
+	var test = 'test';
+	try
+	{
+		localStorage.setItem(test, test);
+		localStorage.removeItem(test);
+		return true;
+	}
+	catch (e)
+	{
+		return false;
 	}
 }
 
@@ -253,7 +246,8 @@ function clearPreferences()
 	localStorage.removeItem('soundMatchURLs');
 	localStorage.removeItem('highlightColor');
 	localStorage.removeItem('selectiveHearing');
-	localStorage.removeItem('purgemode');
+	localStorage.removeItem('purgeMode');
+	localStorage.removeItem('enableScrollingFix');
 }
 
 // Returns a new element that replicates the hangouts chat line break
@@ -302,9 +296,9 @@ var lastMessageNode;
 /* This watches for any children added to the main chat area div. Based on what it is, it will parse
 the message to purge, highlight, or play sounds. Blacklisted messages are not added to the chat area when 
 purgemode is enabled. */
-var chatObserver = new MutationObserver(function(mutations)
+var chatObserver = new MutationObserver(function (mutations)
 {
-	mutations.forEach(function(mutation)
+	mutations.forEach(function (mutation)
 	{
 		for (var i = 0; i < mutation.addedNodes.length; i++)
 		{
@@ -345,9 +339,9 @@ var chatObserver = new MutationObserver(function(mutations)
 // The last message mutation observer
 /* This must be used in order to capture and alter messages sent by the same person in succession,
 as the top level mutation observer will not capture changes to its children. */
-var lastMessageObserver = new MutationObserver(function(mutations)
+var lastMessageObserver = new MutationObserver(function (mutations)
 {
-	mutations.forEach(function(mutation)
+	mutations.forEach(function (mutation)
 	{
 		for (var i = 0; i < mutation.addedNodes.length; i++)
 		{
@@ -364,6 +358,7 @@ the mutation observer so that after hangouts scrolls to the bottom, this scrolls
 was. */
 function scrollFix()
 {
+	chat.scrollTop = chat.scrollHeight - chat.clientHeight;
 	if (enableScrollingFix && fixedScrolling)
 	{
 		chat.scrollTop = fixedScrollingPosition;
@@ -425,7 +420,7 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 					var deletedMessage = document.createElement("a");
 					var originalMessage = chatMessageMessage.innerHTML;
 					deletedMessage.innerHTML = '&lt;message deleted&gt';
-					deletedMessage.onclick = (function()
+					deletedMessage.onclick = (function ()
 					{
 						deletedMessage.innerHTML = originalMessage;
 					})
@@ -494,7 +489,7 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 function parseInputText(text)
 {
 	var replacementTuples = [];
-	if ( replacementPatterns.length != replacementValues.length )
+	if (replacementPatterns.length != replacementValues.length)
 	{
 		addSystemMessage('[hangouts+]: Replacement value/pattern count mismatch.');
 	}
@@ -506,7 +501,7 @@ function parseInputText(text)
 			'value': replacementValues[i]
 		});
 	}
-	replacementTuples.sort(function(a, b)
+	replacementTuples.sort(function (a, b)
 	{
 		return b.pattern.length - a.pattern.length;
 	});
@@ -520,7 +515,7 @@ function parseInputText(text)
 				text = text.replace(new RegExp(replacementTuples[i].pattern, 'g'), replacementTuples[i].value);
 			}
 		}
-		catch( exception)
+		catch (exception)
 		{
 			addSystemMessage("replacement failed on " + replacementTuples[i].pattern + ". Probably malformed regex.");
 			text = originalText;
@@ -536,7 +531,7 @@ function performCommand(command)
 	// Commands command
 	if (command[0] === '!?')
 	{
-		addSystemMessage('[hangouts+]: !block user<br>[hangouts+]: !unblock user<br>[hangouts+]: !purgemode [on/off]<br>[hangouts+]: !emoticons [on/off]<br>[hangouts+]: !clear<br>[hangouts+]: !blacklist [clear]<br>[hangouts+]: !highlight regExp<br>[hangouts+]: !unhighlight regExp<br>[hangouts+]: !highlights [clear]<br>[hangouts+]: !replace regExp replacement<br>[hangouts+]: !replacements<br>[hangouts+]: !selectivehearing [on/off]<br>[hangouts+]: !alert regExp soundURL<br>[hangouts+]: !alerts<br>[hangouts+]: !factoryreset');
+		addSystemMessage('[hangouts+]: !block user<br>[hangouts+]: !unblock user<br>[hangouts+]: !purgemode [on/off]<br>[hangouts+]: !emoticons [on/off]<br>[hangouts+]: !clear<br>[hangouts+]: !blacklist [clear]<br>[hangouts+]: !highlight regExp<br>[hangouts+]: !unhighlight regExp<br>[hangouts+]: !highlights [clear]<br>[hangouts+]: !replace regExp replacement<br>[hangouts+]: !replacements<br>[hangouts+]: !selectivehearing [on/off]<br>[hangouts+]: !alert regExp soundURL<br>[hangouts+]: !alerts<br>[hangouts+]: !factoryreset<br>[hangouts+]: !raw message<br>[hangouts+]: !scrollfix [on|off]');
 	}
 	// Blacklist block command
 	else if (command[0] === '!block')
@@ -780,7 +775,7 @@ function performCommand(command)
 			addSystemMessage("[hangouts+]: Incomplete command.");
 		}
 	}
-	// Black list purge mode command
+	// Blacklist purge mode command
 	/* Handles toggling and viewing status of purge mode */
 	else if (command[0] === '!purgemode')
 	{
@@ -798,14 +793,15 @@ function performCommand(command)
 		{
 			if (purgeBlacklistedMessages)
 			{
-				addSystemMessage('[hangouts+]: Purge mode is on.');
+				addSystemMessage('[hangouts+]: Purge mode is enabled.');
 			}
 			else
 			{
-				addSystemMessage('[hangouts+]: Purge mode is off.');
+				addSystemMessage('[hangouts+]: Purge mode is disabled.');
 			}
 		}
 	}
+
 	// Blacklist selective hearing command
 	/* Handles toggling and viewing status of selective hearing */
 	else if (command[0] === '!selectivehearing')
@@ -824,11 +820,11 @@ function performCommand(command)
 		{
 			if (selectiveHearing)
 			{
-				addSystemMessage('[hangouts+]:Selective hearing is on.');
+				addSystemMessage('[hangouts+]: Selective hearing is enabled.');
 			}
 			else
 			{
-				addSystemMessage('[hangouts+]: Selective hearing is off.');
+				addSystemMessage('[hangouts+]: Selective hearing is disabled.');
 			}
 		}
 	}
@@ -895,8 +891,34 @@ function performCommand(command)
 			}
 		}
 	}
+	// Scrolling fix
+	/* Handles toggling and viewing status of the scrolling fix */
+	else if (command[0] === '!scrollfix')
+	{
+		if (command[1] === 'on')
+		{
+			enableScrollingFix = true;
+			addSystemMessage('[hangouts+]: Scrolling fix enabled.');
+		}
+		else if (command[1] === 'off')
+		{
+			enableScrollingFix = false;
+			addSystemMessage('[hangouts+]: Scrolling fix disabled.');
+		}
+		else
+		{
+			if (enableScrollingFix)
+			{
+				addSystemMessage('[hangouts+]: Scrolling fix is enabled.');
+			}
+			else
+			{
+				addSystemMessage('[hangouts+]: Scrolling fix is disabled.');
+			}
+		}
+	}
 	// Reset all the preferences back to factory defaults
-	else if ( command[0] === '!factoryreset')
+	else if (command[0] === '!factoryreset')
 	{
 		clearPreferences();
 		initializeVariables();
@@ -923,7 +945,7 @@ var fixedScrolling = false;
 var fixedScrollingPosition = 0;
 
 // The main observer used to load and intialize the script
-var hangoutObserver = new MutationObserver(function(mutations)
+var hangoutObserver = new MutationObserver(function (mutations)
 {
 	// Chat initialization
 	if (!chatInit)
@@ -937,14 +959,16 @@ var hangoutObserver = new MutationObserver(function(mutations)
 				childList: true,
 				characterData: true
 			});
-			chat.onscroll = function()
+			chat.onscroll = function ()
 			{
+				textArea.placeholder = 'Enter chat message or link here';
 				if (enableScrollingFix)
 				{
 					if (chat.scrollTop != chat.scrollHeight - chat.clientHeight)
 					{
 						fixedScrolling = true;
 						fixedScrollingPosition = chat.scrollTop;
+						textArea.placeholder = 'The chat is scrolled up. Scroll back down to resume auto scrolling';
 					}
 					else
 					{
@@ -962,7 +986,7 @@ var hangoutObserver = new MutationObserver(function(mutations)
 		textArea = document.querySelector('.Zj');
 		if (textArea)
 		{
-			textArea.onkeydown = function(event)
+			textArea.onkeydown = function (event)
 			{
 				if (event.shiftKey)
 				{
@@ -974,16 +998,23 @@ var hangoutObserver = new MutationObserver(function(mutations)
 				}
 				else if (event.which == 13)
 				{
-					if (textArea.value[0] == '!')
+					if (textArea.value.substr(0, 5) != '!raw ')
 					{
-						var command = textArea.value.split(' ');
-						performCommand(command);
-						textArea.value = '';
-						return false;
+						if (textArea.value[0] === '!')
+						{
+							var command = textArea.value.split(' ');
+							performCommand(command);
+							textArea.value = '';
+							return false;
+						}
+						else
+						{
+							textArea.value = parseInputText(textArea.value);
+						}
 					}
 					else
 					{
-						textArea.value = parseInputText(textArea.value);
+						textArea.value = textArea.value.substr(5);
 					}
 				}
 			}
@@ -994,7 +1025,7 @@ var hangoutObserver = new MutationObserver(function(mutations)
 	{
 		loadPreferences();
 		// Focus the text area when the window becomes focused
-		$(window).focus(function()
+		$(window).focus(function ()
 		{
 			if (focusChatFromBlur)
 			{
