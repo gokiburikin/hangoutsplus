@@ -3,40 +3,24 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.34
+// @version     1.4
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @downloadURL https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js
 // ==/UserScript==
 
-// Variable initialization
-// DO NOT SET THESE. MAKE CHANGES TO THE initializeVariables FUNCTION BELOW.
-var chatBlacklist;
-var purgeBlacklistedMessages;
-var selectiveHearing;
-var enableScrollingFix;
-var disableEmoticons;
-var highlightMatchPatterns;
-var highlightSoundFilePath;
-var highlightColor;
-var soundMatchPatterns;
-var soundMatchURLs;
-var focusChatFromBlur;
-var replacementPatterns
-var replacementValues;
-
 // User preferences
-// THESE PREFERENCES ARE INITIAL INSTALL PREFERENCES.
-// MAKING CHANGES TO THIS LIST WILL NOT HAVE AN EFFECT UNLESS LOCALSTORAGE IS DISABLED OR
-// THE FACTORY RESET COMMAND IS USED, AT WHICH POINT RELOADING THE SCRIPT WILL LOAD AND SAVE
-// THESE PREFERENCES.
-
 /* Most of these settings are meant to be edited using the commands while in google hangouts.
 To access a list of commands, enter the command !? into the chat. */
 
 function initializeVariables()
 {
+	/* Entries that appear in the arrays in this section are always loaded alongside
+	entries users manually add. localstorage is used to save additional entries.
+
+	Script updates will reset these arrays. */
+
 	// Chat message blacklist. Use full names.
 	chatBlacklist = [];
 
@@ -58,101 +42,108 @@ function initializeVariables()
 	highlightSoundFilePath = 'https://www.gstatic.com/chat/sounds/hangout_alert_cc041792a9494bf2cb95e160aae459fe.mp3';
 
 	// supports #000, #FFFFFF, and rgba(r,g,b,a) as STRING colors
-	highlightColor = 'rgba(255,255,0,0.1)';
+	highlightColor = 'rgba(0,128,255,0.2)';
 
 	// Word sound alerting. Use Regular Expression
 	soundMatchPatterns = [
-		'.*[Nn][Yy][Aa][Nn][Pp][Aa][Ss][Uu].*' //,
-		//'.*[Nn][Ii][Cc][Oo]\\s[Nn][Ii][Cc][Oo]\\s[Nn][Ii].*',
-		//'.*[Tt][Ii][Mm][Oo][Tt][Ee][Ii].*',
-		//'.*[Tt][Uu][Tt][Uu][Rr][Uu].*',
-		//'.*[Ww][Ee][Hh].*',
-		//'.*[Qq]_[Qq].*',
-		//'^\/.*[WwBb][Zz][Zz].*',
-		//'^\/.*[Ss][Kk][Ii][Tt][Tt][Ee][Rr].*',
-		//'.*[Ww][Aa][Nn][Gg][Pp][Aa][Ss][Uu].*'
+		'.*[Nn][Yy][Aa][Nn][Pp][Aa][Ss][Uu].*',
+		'.*[Nn][Ii][Cc][Oo]\\s[Nn][Ii][Cc][Oo]\\s[Nn][Ii].*',
+		'.*[Tt][Ii][Mm][Oo][Tt][Ee][Ii].*',
+		'.*[Tt][Uu][Tt][Uu][Rr][Uu].*',
+		'.*[Ww][Ee][Hh].*',
+		'.*[Qq]_[Qq].*',
+		'^\/.*[WwBb][Zz][Zz].*',
+		'^\/.*[Ss][Kk][Ii][Tt][Tt][Ee][Rr].*',
+		'.*[Ww][Aa][Nn][Gg][Pp][Aa][Ss][Uu].*'
 	];
 	soundMatchURLs = [
-		'https://dl.dropboxusercontent.com/u/12577282/cnd/nyanpasu.wav' //,
-		//'https://dl.dropboxusercontent.com/u/12577282/cnd/niconiconi.wav',
-		//'https://dl.dropboxusercontent.com/u/12577282/cnd/timotei.wav',
-		//'https://dl.dropboxusercontent.com/u/12577282/cnd/tuturu.wav',
-		//'https://dl.dropboxusercontent.com/u/12577282/cnd/weh1.wav',
-		//'https://dl.dropboxusercontent.com/u/12577282/cnd/weh2.wav',
-		//'https://dl.dropboxusercontent.com/u/12577282/cnd/bzz.wav',
-		//'https://dl.dropboxusercontent.com/u/12577282/cnd/skitter.wav',
-		//'https://dl.dropboxusercontent.com/u/12577282/cnd/wangpasu3.wav'
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/nyanpasu.wav',
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/niconiconi.wav',
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/timotei.wav',
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/tuturu.wav',
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/weh1.wav',
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/weh2.wav',
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/bzz.wav',
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/skitter.wav',
+		'https://dl.dropboxusercontent.com/u/12577282/cnd/wangpasu3.wav'
 	];
 	// Focus chat text area when the window regains focus
 	focusChatFromBlur = true;
 
 	// Replace certain words in your message before they're sent
 	replacementPatterns = [
-		'/scripturl',
-		'/sup',
-		'/flex',
-		'/raise',
-		'/sparkles',
-		'/lenny',
-		'/shock',
-		'o_/',
-		'/xoxo',
-		'/highfive',
-		'/kick',
-		'/denko',
-		'/pat',
-		'=\\)',
-		'8\\|',
-		'>:\\(',
-		'/stare',
-		'/lie',
-		'/success',
-		'/devil',
-		'/stab',
-		'/dunno',
-		'/huh',
-		'/wat',
-		'/cry',
-		'/sigh',
-		'/woohoo',
-		'/crawl',
-		'/yummy',
-		'/escape',
-		'/sorry'
+		'/scripturl' //,
+		//'/sup',
+		//'/flex',
+		//'/raise',
+		//'/sparkles',
+		//'/lenny',
+		//'/shock',
+		//'o_/',
+		//'/xoxo',
+		//'/highfive',
+		//'/kick',
+		//'/denko',
+		//'/pat',
+		//'=\\)',
+		//'8\\|',
+		//'>:\\(',
+		//'/stare',
+		//'/lie',
+		//'/success',
+		//'/devil',
+		//'/stab',
+		//'/dunno',
+		//'/huh',
+		//'/what',
+		//'/cry',
+		//'/sigh',
+		//'/woohoo',
+		//'/crawl',
+		//'/yummy',
+		//'/escape',
+		//'/sorry'
 	];
 	replacementValues = [
-		'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js',
-		'¯\\_(ツ)_/¯',
-		'ᕦ༼ຈل͜ຈ༽ᕤ',
-		'ヽ༼ຈل͜ຈ༽ﾉ',
-		'(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
-		'( ͡° ͜ʖ ͡°)',
-		'∑(゜Д゜;)',
-		'´ ▽ ` )ﾉ',
-		'(づ￣ ³￣)づ',
-		'(´▽｀)人(´▽｀)',
-		'ヽ(#ﾟДﾟ)ﾉ┌┛Σ(ノ´Д`)ノ',
-		'(´･ω･`)',
-		'(ｏ・_・)ノ(. _ . )',
-		'(๑╹◡╹)',
-		'(⌐■_■)',
-		'(　ﾉ｡ÒㅅÓ)ﾉ',
-		'(=ↀωↀ=)✧',
-		'∠( ᐛ 」∠)＿',
-		'(•̀ᴗ•́)و ̑̑',
-		'←～（o ｀▽´ )oΨ',
-		'∋━━o(｀∀´oメ）～→',
-		'(」ﾟヘﾟ)」',
-		'( ?´_ゝ｀)',
-		'(⊙_☉)',
-		'o(╥﹏╥)o',
-		'(一。一;;）',
-		'Ｏ(≧▽≦)Ｏ',
-		'_:(´ཀ`」 ∠):_',
-		'ヽ(๑╹ڡ╹๑)ﾉ',
-		'C= C= C= ┌(;・ω・)┘',
-		'๑•́ㅿ•̀๑)'
+		'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js' //,
+		//'¯\\_(ツ)_/¯',
+		//'ᕦ༼ຈل͜ຈ༽ᕤ',
+		//'ヽ༼ຈل͜ຈ༽ﾉ',
+		//'(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
+		//'( ͡° ͜ʖ ͡°)',
+		//'∑(゜Д゜;)',
+		//'´ ▽ ` )ﾉ',
+		//'(づ￣ ³￣)づ',
+		//'(´▽｀)人(´▽｀)',
+		//'ヽ(#ﾟДﾟ)ﾉ┌┛Σ(ノ´Д`)ノ',
+		//'(´･ω･`)',
+		//'(ｏ・_・)ノ(. _ . )',
+		//'(๑╹◡╹)',
+		//'(⌐■_■)',
+		//'(　ﾉ｡ÒㅅÓ)ﾉ',
+		//'(=ↀωↀ=)✧',
+		//'∠( ᐛ 」∠)＿',
+		//'(•̀ᴗ•́)و ̑̑',
+		//'←～（o ｀▽´ )oΨ',
+		//'∋━━o(｀∀´oメ）～→',
+		//'(」ﾟヘﾟ)」',
+		//'( ?´_ゝ｀)',
+		//'(⊙_☉)',
+		//'o(╥﹏╥)o',
+		//'(一。一;;）',
+		//'Ｏ(≧▽≦)Ｏ',
+		//'_:(´ཀ`」 ∠):_',
+		//'ヽ(๑╹ڡ╹๑)ﾉ',
+		//'C= C= C= ┌(;・ω・)┘',
+		//'๑•́ㅿ•̀๑)'
 	];
+
+	chatBlacklistAdditions = [];
+	replacementValueAdditions = [];
+	replacementPatternAdditions = [];
+	soundMatchPatternAdditions = [];
+	soundMatchURLAdditions = [];
+	highlightMatchPatternAdditions = [];
 }
 
 // * Do not edit below this line * //
@@ -164,12 +155,12 @@ function savePreferences()
 	{
 		if (localStorageTest())
 		{
-			localStorage.setItem('blacklist', JSON.stringify(chatBlacklist));
-			localStorage.setItem('highlightMatchPatterns', JSON.stringify(highlightMatchPatterns));
-			localStorage.setItem('replacementPatterns', JSON.stringify(replacementPatterns));
-			localStorage.setItem('replacementValues', JSON.stringify(replacementValues));
-			localStorage.setItem('soundMatchPatterns', JSON.stringify(soundMatchPatterns));
-			localStorage.setItem('soundMatchURLs', JSON.stringify(soundMatchURLs));
+			localStorage.setItem('blacklist', JSON.stringify(chatBlacklistAdditions));
+			localStorage.setItem('highlightMatchPatterns', JSON.stringify(highlightMatchPatternAdditions));
+			localStorage.setItem('replacementPatterns', JSON.stringify(replacementPatternAdditions));
+			localStorage.setItem('replacementValues', JSON.stringify(replacementValueAdditions));
+			localStorage.setItem('soundMatchPatterns', JSON.stringify(soundMatchPatternAdditions));
+			localStorage.setItem('soundMatchURLs', JSON.stringify(soundMatchURLAdditions));
 			localStorage.setItem('highlightColor', JSON.stringify(highlightColor));
 			localStorage.setItem('selectiveHearing', JSON.stringify(selectiveHearing));
 			localStorage.setItem('purgeMode', JSON.stringify(purgeBlacklistedMessages));
@@ -187,24 +178,113 @@ function loadPreferences()
 {
 	try
 	{
+		var results = '';
 		if (localStorageTest())
 		{
-			chatBlacklist = tryLoadPreference('blacklist', chatBlacklist);
-			highlightMatchPatterns = tryLoadPreference('highlightMatchPatterns', highlightMatchPatterns);
+			chatBlacklistAdditions = tryLoadPreference('blacklist', []);
+			highlightMatchPatternAdditions = tryLoadPreference('highlightMatchPatterns', []);
+			replacementPatternAdditions = tryLoadPreference('replacementPatterns', []);
+			replacementValueAdditions = tryLoadPreference('replacementValues', []);
+			soundMatchPatternAdditions = tryLoadPreference('soundMatchPatterns', []);
+			soundMatchURLAdditions = tryLoadPreference('soundMatchURLs', []);
 			highlightColor = tryLoadPreference('highlightColor', highlightColor);
-			replacementPatterns = tryLoadPreference('replacementPatterns', replacementPatterns);
-			replacementValues = tryLoadPreference('replacementValues', replacementValues);
-			soundMatchPatterns = tryLoadPreference('soundMatchPatterns', soundMatchPatterns);
-			soundMatchURLs = tryLoadPreference('soundMatchURLs', soundMatchURLs);
 			selectiveHearing = tryLoadPreference('selectiveHearing', selectiveHearing);
 			purgeBlacklistedMessages = tryLoadPreference('purgeMode', purgeBlacklistedMessages);
 			enableScrollingFix = tryLoadPreference('enableScrollingFix', enableScrollingFix);
+
+			results = 'Loaded ';
+			// Load additional highlights
+			results += highlightMatchPatterns.length + '+';
+			var additions = 0;
+			for (var i = 0; i < highlightMatchPatternAdditions.length; i++)
+			{
+				if (highlightMatchPatterns.indexOf(highlightMatchPatternAdditions[i]) != -1)
+				{
+					highlightMatchPatternAdditions.splice(i, 1);
+					i--;
+				}
+				else
+				{
+					additions++;
+				}
+			}
+			results += additions + ' highlights, ';
+
+			// Load additional replacements
+			additions = 0;
+			results += replacementPatterns.length + '+';
+			for (var i = 0; i < replacementPatternAdditions.length; i++)
+			{
+				if (replacementPatterns.indexOf(replacementPatternAdditions[i]) != -1)
+				{
+					replacementPatternAdditions.splice(i, 1);
+					replacementValueAdditions.splice(i, 1);
+					i--;
+				}
+				else
+				{
+					additions++;
+				}
+			}
+			results += additions + ' replacements, ';
+
+			// Load additional blacklist entries
+			additions = 0;
+			results += chatBlacklist.length + '+';
+			for (var i = 0; i < chatBlacklistAdditions.length; i++)
+			{
+				if (chatBlacklist.indexOf(chatBlacklistAdditions[i]) != -1)
+				{
+					chatBlacklistAdditions.splice(i, 1);
+					i--;
+				}
+				else
+				{
+					additions++;
+				}
+			}
+			results += additions + ' blacklist entries, ';
+
+			// Load additional alerts
+			additions = 0;
+			results += ' and ' + soundMatchPatterns.length + '+';
+			for (var i = 0; i < soundMatchPatternAdditions.length; i++)
+			{
+				if (soundMatchPatterns.indexOf(soundMatchPatternAdditions[i]) != -1)
+				{
+					soundMatchPatternAdditions.splice(i, 1);
+					soundMatchURLAdditions.splice(i, 1);
+					i--;
+				}
+				else
+				{
+					additions++;
+				}
+			}
+			results += additions + ' sound alerts.';
 		}
+		addSystemMessage('[hangouts+]:' + results);
 	}
 	catch (exception)
 	{
 		console.log("[hangouts+]: Failed to load preferences.");
 	}
+}
+
+
+// Clears the preferences from local storage
+function clearPreferences()
+{
+	localStorage.removeItem('blacklist');
+	localStorage.removeItem('highlightMatchPatterns');
+	localStorage.removeItem('replacementPatterns');
+	localStorage.removeItem('replacementValues');
+	localStorage.removeItem('soundMatchPatterns');
+	localStorage.removeItem('soundMatchURLs');
+	localStorage.removeItem('highlightColor');
+	localStorage.removeItem('selectiveHearing');
+	localStorage.removeItem('purgeMode');
+	localStorage.removeItem('enableScrollingFix');
 }
 
 // Attempt to find and parse a user preference. If it fails, use the default value.
@@ -235,21 +315,6 @@ function localStorageTest()
 	}
 }
 
-// Clears the preferences from local storage
-function clearPreferences()
-{
-	localStorage.removeItem('blacklist');
-	localStorage.removeItem('highlightMatchPatterns');
-	localStorage.removeItem('replacementPatterns');
-	localStorage.removeItem('replacementValues');
-	localStorage.removeItem('soundMatchPatterns');
-	localStorage.removeItem('soundMatchURLs');
-	localStorage.removeItem('highlightColor');
-	localStorage.removeItem('selectiveHearing');
-	localStorage.removeItem('purgeMode');
-	localStorage.removeItem('enableScrollingFix');
-}
-
 // Returns a new element that replicates the hangouts chat line break
 function newChatLineBreak()
 {
@@ -276,21 +341,14 @@ function newChatLineSystemMessage(message)
 // Used to add false system messages to the chat area
 function addSystemMessage(message)
 {
+	var div = newChatLineSystemMessage(message);
 	if (chat)
 	{
-		chat.appendChild(newChatLineSystemMessage(message));
-		chat.scrollTop = chat.scrollHeight;
+		chat.appendChild(div);
+		scrollChatToBottom();
 	}
+	return div;
 }
-
-// The actual chat area div
-var chat;
-// The text area used to send chat messages
-var textArea;
-// The node of the last received chat message
-/* This is used as a mutation observer object because hangouts does not make a new div in the main chat
-window when the same user posts multiple messages before another user or system message is received */
-var lastMessageNode;
 
 // The chat mutation observer
 /* This watches for any children added to the main chat area div. Based on what it is, it will parse
@@ -321,9 +379,16 @@ var chatObserver = new MutationObserver(function (mutations)
 					var chatMessage = node;
 					if (!node.childNodes[0].childNodes[0].classList.contains('Kc-Ca'))
 					{
-						var chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0].childNodes[0];
+						// Retrieves the container of the users name
+						var chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
+						// Retrieves the container of the text message
+						// This can contain multiple child text nodes
 						var chatMessageMessage = chatMessage.childNodes[0].childNodes[1].childNodes[1];
-						handleNewMessage(node, chatMessageSender, chatMessageMessage);
+						handleNewMessage(node, chatMessageSender.childNodes[0], chatMessageMessage);
+						if (popoutChatWindow != null)
+						{
+							popoutChatAddMessage(chatMessageSender.innerHTML, chatMessageMessage.innerHTML, chatMessageSender.style.color);
+						}
 					}
 				}
 				if (node.classList.contains('Kc-Nd'))
@@ -347,6 +412,10 @@ var lastMessageObserver = new MutationObserver(function (mutations)
 		{
 			var node = mutation.addedNodes[i];
 			handleNewMessage(lastMessageNode, lastMessageNode.childNodes[0].childNodes[1].childNodes[0].childNodes[0].childNodes[0], node);
+			if (popoutChatWindow != null)
+			{
+				popoutChatAddMessage(lastMessageNode.childNodes[0].childNodes[1].childNodes[0].childNodes[0].childNodes[0].nodeValue, node.innerHTML, lastMessageNode.childNodes[0].childNodes[1].childNodes[0].childNodes[0].style.color);
+			}
 		}
 		scrollFix();
 	});
@@ -358,11 +427,24 @@ the mutation observer so that after hangouts scrolls to the bottom, this scrolls
 was. */
 function scrollFix()
 {
-	chat.scrollTop = chat.scrollHeight - chat.clientHeight;
-	if (enableScrollingFix && fixedScrolling)
+	if (enableScrollingFix)
 	{
-		chat.scrollTop = fixedScrollingPosition;
+		scrollChatToBottom();
+		if (popoutChatWindow != null)
+		{
+			popoutChatWindowMessageArea.scrollTop = popoutChatWindowMessageArea.scrollHeight - popoutChatWindowMessageArea.clientHeight;
+		}
+		if (fixedScrolling)
+		{
+			chat.scrollTop = fixedScrollingPosition;
+		}
 	}
+}
+
+// Scrolls the chat to the very bottom
+function scrollChatToBottom()
+{
+	chat.scrollTop = chat.scrollHeight - chat.clientHeight;
 }
 
 // Returns the outcome of a regex test
@@ -372,24 +454,55 @@ function regexMatch(text, pattern)
 	return regex.test(text);
 }
 
+function getHighlightMatchPatterns()
+{
+	return highlightMatchPatterns.concat(highlightMatchPatternAdditions);
+}
+
+function getChatBlacklist()
+{
+	return chatBlacklist.concat(chatBlacklistAdditions);
+}
+
+function getSoundMatchPatterns()
+{
+	return soundMatchPatterns.concat(soundMatchPatternAdditions);
+}
+
+function getSoundMatchURLs()
+{
+	return soundMatchURLs.concat(soundMatchURLAdditions);
+}
+
+function getReplacementPatterns()
+{
+	return replacementPatterns.concat(replacementPatternAdditions);
+}
+
+function getReplacementValues()
+{
+	return replacementValues.concat(replacementValueAdditions);
+}
+
 // Handles new messages
 /* This function deals with the actual content of the message. */
 function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 {
 	// Highlights
-	if (highlightMatchPatterns.length > 0)
+	var highlightMatchPatternsJoin = getHighlightMatchPatterns();
+	if (highlightMatchPatternsJoin.length > 0)
 	{
 		var hasPlayed = false;
 		if (!hasPlayed)
 		{
-			for (var i = 0; i < highlightMatchPatterns.length; i++)
+			for (var i = 0; i < highlightMatchPatternsJoin.length; i++)
 			{
 				for (var j = 0; j < chatMessageMessage.childNodes.length; j++)
 				{
 					if (chatMessageMessage.childNodes[j].nodeType == 3)
 					{
 						var message = chatMessageMessage.childNodes[j].nodeValue;
-						if (regexMatch(message, highlightMatchPatterns[i]))
+						if (regexMatch(message, highlightMatchPatternsJoin[i]))
 						{
 							chatMessageMessage.style.backgroundColor = highlightColor;
 							var audio = new Audio(highlightSoundFilePath);
@@ -408,9 +521,10 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 	}
 
 	// Blacklist
-	for (var j = 0; j < chatBlacklist.length; j++)
+	var chatBlacklistJoin = getChatBlacklist();
+	for (var j = 0; j < chatBlacklistJoin.length; j++)
 	{
-		if (chatBlacklist[j].toLowerCase() == chatMessageSender.nodeValue.toLowerCase())
+		if (chatBlacklistJoin[j].toLowerCase() == chatMessageSender.nodeValue.toLowerCase())
 		{
 			if (!purgeBlacklistedMessages)
 			{
@@ -440,7 +554,9 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 	}
 
 	// Sounds
-	for (var i = 0; i < soundMatchPatterns.length; i++)
+	var soundMatchPatternsJoin = getSoundMatchPatterns();
+	var soundMatchURLsJoin = getSoundMatchURLs();
+	for (var i = 0; i < soundMatchPatternsJoin.length; i++)
 	{
 		var hasPlayed = false;
 		if (!hasPlayed)
@@ -450,9 +566,9 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 				if (chatMessageMessage.childNodes[j].nodeType == 3)
 				{
 					var message = chatMessageMessage.childNodes[j].nodeValue;
-					if (regexMatch(message, soundMatchPatterns[i]))
+					if (regexMatch(message, soundMatchPatternsJoin[i]))
 					{
-						var audio = new Audio(soundMatchURLs[i]);
+						var audio = new Audio(soundMatchURLsJoin[i]);
 						audio.play();
 						hasPlayed = true;
 					}
@@ -488,17 +604,20 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 // Parses the text that is inside the text area for replacements
 function parseInputText(text)
 {
+	// Replacements
+	var replacementPatternsJoin = getReplacementPatterns();
+	var replacementValuesJoin = getReplacementValues();
 	var replacementTuples = [];
-	if (replacementPatterns.length != replacementValues.length)
+	if (replacementPatternsJoin.length != replacementValuesJoin.length)
 	{
 		addSystemMessage('[hangouts+]: Replacement value/pattern count mismatch.');
 	}
-	for (var i = 0; i < replacementPatterns.length; i++)
+	for (var i = 0; i < replacementPatternsJoin.length; i++)
 	{
 		replacementTuples.push(
 		{
-			'pattern': replacementPatterns[i],
-			'value': replacementValues[i]
+			'pattern': replacementPatternsJoin[i],
+			'value': replacementValuesJoin[i]
 		});
 	}
 	replacementTuples.sort(function (a, b)
@@ -517,7 +636,7 @@ function parseInputText(text)
 		}
 		catch (exception)
 		{
-			addSystemMessage("replacement failed on " + replacementTuples[i].pattern + ". Probably malformed regex.");
+			addSystemMessage("replacement failed on " + replacementTuples[i].pattern + ". Probably malformed regex: " + replacementTuples[i].value);
 			text = originalText;
 			break;
 		}
@@ -531,7 +650,32 @@ function performCommand(command)
 	// Commands command
 	if (command[0] === '!?')
 	{
-		addSystemMessage('[hangouts+]: !block user<br>[hangouts+]: !unblock user<br>[hangouts+]: !purgemode [on/off]<br>[hangouts+]: !emoticons [on/off]<br>[hangouts+]: !clear<br>[hangouts+]: !blacklist [clear]<br>[hangouts+]: !highlight regExp<br>[hangouts+]: !unhighlight regExp<br>[hangouts+]: !highlights [clear]<br>[hangouts+]: !replace regExp replacement<br>[hangouts+]: !replacements<br>[hangouts+]: !selectivehearing [on/off]<br>[hangouts+]: !alert regExp soundURL<br>[hangouts+]: !alerts<br>[hangouts+]: !factoryreset<br>[hangouts+]: !raw message<br>[hangouts+]: !scrollfix [on|off]');
+		var commands = [
+			'clear',
+			'block user',
+			'unblock user',
+			'blacklist [clear]',
+			'purgemode [on/off]',
+			'emoticons [on/off]',
+			'scrollfix [on/off]',
+			'selective [on/off]',
+			'highlight regExp',
+			'unhighlight regExp',
+			'highlights [clear]',
+			'highlightcolor htmlValidColor',
+			'replace regExp [replacement]',
+			//'unreplace regExp',
+			'replacements [clear]',
+			'alert regExp [soundURL]',
+			//'unalert regExp',
+			'alerts [clear]',
+			//'popout'
+			'raw message'
+		];
+		for (var i = 0; i < commands.length; i++)
+		{
+			addSystemMessage('[hangouts+]: !' + commands[i]);
+		}
 	}
 	// Blacklist block command
 	else if (command[0] === '!block')
@@ -542,9 +686,9 @@ function performCommand(command)
 			merged += ' ' + command[i];
 		}
 		merged = merged.substr(1);
-		if (command[1] && chatBlacklist.indexOf(merged) == -1)
+		if (command[1] && chatBlacklistAdditions.indexOf(merged) == -1)
 		{
-			chatBlacklist.push(merged);
+			chatBlacklistAdditions.push(merged);
 			addSystemMessage('[hangouts+]: Blocked user ' + merged + '.');
 		}
 	}
@@ -557,10 +701,10 @@ function performCommand(command)
 			merged += ' ' + command[i];
 		}
 		merged = merged.substr(1);
-		if (command[1] && chatBlacklist.indexOf(merged) != -1)
+		if (command[1] && chatBlacklistAdditions.indexOf(merged) != -1)
 		{
-			chatBlacklist.splice(chatBlacklist.indexOf(merged), 1);
-			addSystemMessage('[hangouts+]: Unblocked user ' + merged);
+			chatBlacklistAdditions.splice(chatBlacklistAdditions.indexOf(merged), 1);
+			addSystemMessage('[hangouts+]: Unblocked user ' + merged + '.');
 		}
 	}
 	// Replacements replace command
@@ -575,25 +719,25 @@ function performCommand(command)
 		merged = merged.substr(1);
 		if (command[1])
 		{
-			if (replacementPatterns.indexOf(command[1]) == -1)
+			if (replacementPatternAdditions.indexOf(command[1]) == -1)
 			{
-				replacementPatterns.push(command[1]);
-				replacementValues.push(merged);
-				addSystemMessage('[hangouts+]: Added replacement pattern ' + command[1] + ' to ' + merged);
+				replacementPatternAdditions.push(command[1]);
+				replacementValueAdditions.push(merged);
+				addSystemMessage('[hangouts+]: Added replacement pattern ' + command[1] + ' to ' + merged + '.');
 			}
-			else if (replacementPatterns.indexOf(command[1]) != -1)
+			else if (replacementPatternAdditions.indexOf(command[1]) != -1)
 			{
 				if (!merged || merged.length == 0)
 				{
-					replacementValues.splice(replacementPatterns.indexOf(command[1]), 1);
-					replacementPatterns.splice(replacementPatterns.indexOf(command[1]), 1);
-					addSystemMessage('[hangouts+]: Removed replacement pattern ' + command[1] + ' to ' + merged);
+					replacementValueAdditions.splice(replacementPatternAdditions.indexOf(command[1]), 1);
+					replacementPatternAdditions.splice(replacementPatternAdditions.indexOf(command[1]), 1);
+					addSystemMessage('[hangouts+]: Removed replacement pattern ' + command[1] + '.');
 				}
 				else
 				{
-					replacementPatterns[replacementPatterns.indexOf(command[1])] = command[1];
-					replacementValues[replacementPatterns.indexOf(command[1])] = merged;
-					addSystemMessage('[hangouts+]: Updated replacement pattern ' + command[1] + ' to ' + merged);
+					replacementPatternAdditions[replacementPatternAdditions.indexOf(command[1])] = command[1];
+					replacementValueAdditions[replacementPatternAdditions.indexOf(command[1])] = merged;
+					addSystemMessage('[hangouts+]: Updated replacement pattern ' + command[1] + ' to ' + merged + '.');
 				}
 			}
 		}
@@ -614,25 +758,25 @@ function performCommand(command)
 		merged = merged.substr(1);
 		if (command[1])
 		{
-			if (soundMatchPatterns.indexOf(command[1]) == -1)
+			if (soundMatchPatternAdditions.indexOf(command[1]) == -1)
 			{
-				soundMatchPatterns.push(command[1]);
-				soundMatchURLs.push(merged);
-				addSystemMessage('[hangouts+]: Added alert ' + command[1] + ' plays ' + merged);
+				soundMatchPatternAdditions.push(command[1]);
+				soundMatchURLAdditions.push(merged);
+				addSystemMessage('[hangouts+]: Added alert ' + command[1] + ' plays ' + merged + '.');
 			}
-			else if (soundMatchPatterns.indexOf(command[1]) != -1)
+			else if (soundMatchPatternAdditions.indexOf(command[1]) != -1)
 			{
 				if (!merged || merged.length == 0)
 				{
-					soundMatchURLs.splice(soundMatchPatterns.indexOf(command[1]), 1);
-					soundMatchPatterns.splice(soundMatchPatterns.indexOf(command[1]), 1);
-					addSystemMessage('[hangouts+]: Removed alert ' + command[1] + ' no longer plays ' + merged);
+					soundMatchURLAdditions.splice(soundMatchPatternAdditions.indexOf(command[1]), 1);
+					soundMatchPatternAdditions.splice(soundMatchPatternAdditions.indexOf(command[1]), 1);
+					addSystemMessage('[hangouts+]: Removed alert ' + command[1] + ' no longer plays ' + merged + '.');
 				}
 				else
 				{
-					soundMatchPatterns[soundMatchPatterns.indexOf(command[1])] = command[1];
-					soundMatchURLs[soundMatchPatterns.indexOf(command[1])] = merged;
-					addSystemMessage('[hangouts+]: Updated alert ' + command[1] + ' plays ' + merged);
+					soundMatchPatternAdditions[soundMatchPatternAdditions.indexOf(command[1])] = command[1];
+					soundMatchURLAdditions[soundMatchPatternAdditions.indexOf(command[1])] = merged;
+					addSystemMessage('[hangouts+]: Updated alert ' + command[1] + ' plays ' + merged + '.');
 				}
 			}
 		}
@@ -644,40 +788,45 @@ function performCommand(command)
 	// Replacements list replacements command
 	else if (command[0] === '!replacements')
 	{
-		if (replacementPatterns.length == 0)
+		var replacementPatternsJoin = getReplacementPatterns();
+		var replacementValuesJoin = getReplacementValues();
+		if (replacementPatternsJoin.length == 0)
 		{
 			addSystemMessage('[hangouts+]: No replacement patterns exist.');
 		}
 		else
 		{
 			addSystemMessage('[hangouts+]: Replacement patterns:');
-			for (var i = 0; i < replacementPatterns.length; i++)
+			for (var i = 0; i < replacementPatternsJoin.length; i++)
 			{
-				addSystemMessage('\t' + replacementPatterns[i] + ' to ' + replacementValues[i]);
+				addSystemMessage('\t' + replacementPatternsJoin[i] + ' to ' + replacementValuesJoin[i]);
 			}
 		}
 	}
 	// Sound alerts list alerts command
 	else if (command[0] === '!alerts')
 	{
-		if (soundMatchPatterns.length == 0)
+		var soundMatchPatternsJoin = getSoundMatchPatterns();
+		var soundMatchURLsJoin = getSoundMatchURLs();
+		if (soundMatchPatternsJoin.length == 0)
 		{
 			addSystemMessage('[hangouts+]: No alerts exist.');
 		}
 		else
 		{
 			addSystemMessage('[hangouts+]: Alerts:');
-			for (var i = 0; i < soundMatchPatterns.length; i++)
+			for (var i = 0; i < soundMatchPatternsJoin.length; i++)
 			{
-				addSystemMessage('\t' + soundMatchPatterns[i] + ' to ' + soundMatchURLs[i]);
+				addSystemMessage('\t' + soundMatchPatternsJoin[i] + ' to ' + soundMatchURLsJoin[i]);
 			}
 		}
 	}
 	// Highlights command
-	/* Handles listing ans clearing all highlights , as well as changing highlight colour */
+	/* Handles listing and clearing all highlights */
 	else if (command[0] === '!highlights')
 	{
-		if (highlightMatchPatterns.length == 0)
+		var highlightMatchPatternsJoin = getHighlightMatchPatterns();
+		if (highlightMatchPatternsJoin.length == 0)
 		{
 			addSystemMessage('[hangouts+]: No highlight patterns.');
 		}
@@ -685,10 +834,7 @@ function performCommand(command)
 		{
 			if (command[1] === 'clear')
 			{
-				while (highlightMatchPatterns.length > 0)
-				{
-					highlightMatchPatterns.pop();
-				}
+				highlightMatchPatternAdditions = [];
 				addSystemMessage('[hangouts+]: Highlight patterns cleared.');
 			}
 			// Deprecated
@@ -700,28 +846,31 @@ function performCommand(command)
 				}
 				addSystemMessage('[hangouts+]: Highlight patterns trimmed.');
 			}*/
-			else if (command[1] === 'color')
-			{
-				if (command.length > 2)
-				{
-					highlightColor = command[2];
-					addSystemMessage('[hangouts+]: Highlight color changed to ' + command[2] + '.');
-				}
-				else
-				{
-					addSystemMessage('[hangouts+]: Color parameter missing. Highlight color was not changed.');
-				}
-			}
 			else
 			{
 				var highlightPatterns = '';
-				for (var i = 0; i < highlightMatchPatterns.length; i++)
+				for (var i = 0; i < highlightMatchPatternsJoin.length; i++)
 				{
-					highlightPatterns += ',' + highlightMatchPatterns[i];
+					highlightPatterns += ',' + highlightMatchPatternsJoin[i];
 				}
 				highlightPatterns = highlightPatterns.substr(1);
 				addSystemMessage('[hangouts+]: Highlight patterns: ' + highlightPatterns);
 			}
+		}
+	}
+	// Highlight color command
+	// Handles changing the highlight colour
+	else if (command[0] === '!highlightcolor')
+	{
+		if (command.length > 1)
+		{
+			highlightColor = command[1];
+			var div = addSystemMessage('[hangouts+]: Highlight color changed to ' + command[1] + '.');
+			div.style.backgroundColor = command[1];
+		}
+		else
+		{
+			addSystemMessage('[hangouts+]: Color parameter missing. Highlight color was not changed.');
 		}
 	}
 	// Highlights add highlight command
@@ -735,9 +884,9 @@ function performCommand(command)
 		var exists = false;
 		if (merged.length > 0 && merged != "")
 		{
-			if (highlightMatchPatterns.indexOf(merged) == -1)
+			if (highlightMatchPatternAdditions.indexOf(merged) == -1)
 			{
-				highlightMatchPatterns.push(merged);
+				highlightMatchPatternAdditions.push(merged);
 				addSystemMessage("[hangouts+]: " + merged + ' added to the highlight list.');
 			}
 			else
@@ -760,9 +909,9 @@ function performCommand(command)
 		}
 		if (merged.length > 0 && merged != "")
 		{
-			if (highlightMatchPatterns.indexOf(merged) != -1)
+			if (highlightMatchPatternAdditions.indexOf(merged) != -1)
 			{
-				highlightMatchPatterns.splice(highlightMatchPatterns.indexOf(merged), 1);
+				highlightMatchPatternAdditions.splice(highlightMatchPatternAdditions.indexOf(merged), 1);
 				addSystemMessage("[hangouts+]: " + merged + ' removed from the highlight list.');
 			}
 			else
@@ -804,7 +953,7 @@ function performCommand(command)
 
 	// Blacklist selective hearing command
 	/* Handles toggling and viewing status of selective hearing */
-	else if (command[0] === '!selectivehearing')
+	else if (command[0] === '!selective')
 	{
 		if (command[1] === 'on')
 		{
@@ -841,7 +990,8 @@ function performCommand(command)
 	/* Handles listing and clearing the blacklist */
 	else if (command[0] === '!blacklist')
 	{
-		if (chatBlacklist.length == 0)
+		var chatBlacklistJoin = getChatBlacklist();
+		if (chatBlacklistJoin.length == 0)
 		{
 			addSystemMessage('[hangouts+]: No blacklisted users.');
 		}
@@ -849,18 +999,15 @@ function performCommand(command)
 		{
 			if (command[1] === 'clear')
 			{
-				while (chatBlacklist.length > 0)
-				{
-					chatBlacklist.pop();
-				}
+				chatBlacklistAdditions = [];
 				addSystemMessage('[hangouts+]: Blacklist cleared.');
 			}
 			else
 			{
 				var blacklistedUsers = '';
-				for (var i = 0; i < chatBlacklist.length; i++)
+				for (var i = 0; i < chatBlacklistJoin.length; i++)
 				{
-					blacklistedUsers += ',' + chatBlacklist[i];
+					blacklistedUsers += ',' + chatBlacklistJoin[i];
 				}
 				blacklistedUsers = blacklistedUsers.substr(1);
 				addSystemMessage('[hangouts+]: Blacklisted users: ' + blacklistedUsers);
@@ -924,6 +1071,11 @@ function performCommand(command)
 		initializeVariables();
 		addSystemMessage('[hangouts+]: Preferences cleared.');
 	}
+	// Reset all the preferences back to factory defaults
+	else if (command[0] === '!popout')
+	{
+		initializePopoutChat();
+	}
 	// The command didn't exist
 	else
 	{
@@ -931,18 +1083,7 @@ function performCommand(command)
 	}
 	savePreferences();
 }
-// Tracks if the chat blacklist was properly initialized
-var chatInit = false;
 
-// Tracks if the commands were properly initialized
-var textAreaInit = false;
-
-// Tracks if the user has manually scrolled the scrollbar
-/* There is currently an issue where this is set to true outside of normal conditions */
-var fixedScrolling = false;
-
-// Keeps track of where the scrollbar is
-var fixedScrollingPosition = 0;
 
 // The main observer used to load and intialize the script
 var hangoutObserver = new MutationObserver(function (mutations)
@@ -961,14 +1102,14 @@ var hangoutObserver = new MutationObserver(function (mutations)
 			});
 			chat.onscroll = function ()
 			{
-				textArea.placeholder = 'Enter chat message or link here';
 				if (enableScrollingFix)
 				{
+					textArea.placeholder = 'Enter chat message or link here';
 					if (chat.scrollTop != chat.scrollHeight - chat.clientHeight)
 					{
 						fixedScrolling = true;
 						fixedScrollingPosition = chat.scrollTop;
-						textArea.placeholder = 'The chat is scrolled up. Scroll back down to resume auto scrolling';
+						textArea.placeholder = 'The chat is scrolled up.';
 					}
 					else
 					{
@@ -1003,8 +1144,8 @@ var hangoutObserver = new MutationObserver(function (mutations)
 						if (textArea.value[0] === '!')
 						{
 							var command = textArea.value.split(' ');
-							performCommand(command);
 							textArea.value = '';
+							performCommand(command);
 							return false;
 						}
 						else
@@ -1033,7 +1174,7 @@ var hangoutObserver = new MutationObserver(function (mutations)
 			}
 		});
 		hangoutObserver.disconnect();
-		addSystemMessage('[hangouts+]: Plugin initialized.');
+		addSystemMessage('[hangouts+]: Plugin initialized. Type !? for a list of commands.');
 	}
 });
 initializeVariables();
@@ -1044,3 +1185,112 @@ hangoutObserver.observe(document.querySelector('body'),
 	childList: true,
 	characterData: true
 });
+
+// Variable initialization
+// Tracks if the chat blacklist was properly initialized
+var chatInit = false;
+
+// Tracks if the commands were properly initialized
+var textAreaInit = false;
+
+// Tracks if the user has manually scrolled the scrollbar
+/* There is currently an issue where this is set to true outside of normal conditions */
+var fixedScrolling = false;
+
+// Keeps track of where the scrollbar is
+var fixedScrollingPosition = 0;
+
+// The actual chat area div
+var chat;
+
+// The text area used to send chat messages
+var textArea;
+
+// The node of the last received chat message
+/* This is used as a mutation observer object because hangouts does not make a new div in the main chat
+window when the same user posts multiple messages before another user or system message is received */
+var lastMessageNode;
+
+// Placeholders
+var chatBlacklist;
+var chatBlacklistAdditions;
+var purgeBlacklistedMessages;
+var selectiveHearing;
+var enableScrollingFix;
+var disableEmoticons;
+var focusChatFromBlur;
+var highlightMatchPatterns;
+var highlightMatchPatternAdditions;
+var highlightSoundFilePath;
+var highlightColor;
+var soundMatchPatterns;
+var soundMatchPatternAdditions;
+var soundMatchURLs;
+var soundMatchURLAdditions;
+var replacementPatterns
+var replacementPatternAdditions;
+var replacementValues;
+var replacementValueAdditions;
+
+// Experimental Popout Chat Feature
+
+// Popout Chat Window
+var popoutChatWindow = null;
+var popoutChatWindowMessageArea = null;
+var popoutChatWindowTextArea = null;
+
+initializePopoutChat = function ()
+{
+	try
+	{
+		popoutChatWindow = window.open('about:blank', 'popoutChat', 'width=200,height=400');
+		var style = document.createElement('style');
+		style.type = 'text/css';
+		style.appendChild(document.createTextNode('' +
+			'.message { display: inline; } ' +
+			'.messageContainer { padding: 2px; } ' +
+			'.messageArea { background-color: #EEE; overflow-y: auto; overflow-x: hidden; position: absolute; bottom: 54px; top: 0px; width: 100%;  } ' +
+			'.textArea { font-size: 12px; position: absolute; bottom: 0px; overflow: hidden; height: 54px; width: 100%; margin: 0; padding: 0; border: 1px solid rgba(0,0,0,0.2); resize: none; font-family: "Roboto","Arial"; } ' +
+			'html, body { font-size: 12px; width: 100%; height: 100%; padding: 0; margin: 0; font-family: "Roboto","Arial"; } ' +
+			'html, body { overflow: hidden; } '
+		));
+		popoutChatWindow.onload = function ()
+		{
+			popoutChatWindow.document.getElementsByTagName('html')[0].appendChild(style);
+			popoutChatWindowMessageArea = popoutChatWindow.document.createElement('div');
+			popoutChatWindowMessageArea.className = 'messageArea';
+			popoutChatWindowTextArea = popoutChatWindow.document.createElement('textarea');
+			popoutChatWindowTextArea.className = 'textArea';
+			popoutChatWindow.document.body.appendChild(popoutChatWindowMessageArea);
+			popoutChatWindow.document.body.appendChild(popoutChatWindowTextArea);
+			popoutChatWindowTextArea.onkeydown = textArea.onkeydown;
+			popoutChatWindowTextArea.onkeyup = textArea.onkeyup;
+			popoutChatWindowTextArea.oninput = textArea.oninput;
+			popoutChatWindowTextArea.onkeypress = textArea.onkeypress;
+			addSystemMessage('[hangouts+]: Popout chat initialized.');
+		}
+	}
+	catch (exception)
+	{
+		addSystemMessage('hangouts+]: Error creating initializing popout chat window.');
+	}
+}
+
+popoutChatAddMessage = function (sender, message, senderColor)
+{
+	var messageContainerDiv = popoutChatWindow.document.createElement("div");
+	var messageDiv = popoutChatWindow.document.createElement("div");
+	var nameSpan = popoutChatWindow.document.createElement("span");
+	if (senderColor != null)
+	{
+		nameSpan.style.color = senderColor;
+		nameSpan.style.display = 'inline';
+	}
+	nameSpan.appendChild(popoutChatWindow.document.createTextNode(sender + ' : '));
+	messageDiv.innerHTML = message;
+	messageDiv.className = 'message';
+	messageContainerDiv.appendChild(nameSpan);
+	messageContainerDiv.appendChild(messageDiv);
+	messageContainerDiv.className = 'messageContainer';
+	popoutChatWindowMessageArea.appendChild(messageContainerDiv);
+}
