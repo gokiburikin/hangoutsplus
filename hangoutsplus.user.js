@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.4
+// @version     1.41
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -447,6 +447,23 @@ function scrollChatToBottom()
 	chat.scrollTop = chat.scrollHeight - chat.clientHeight;
 }
 
+// Checks if the chat is scrolled to the bottom
+// Doesn't use abs... because it wasn't working...
+function isChatScrolledToBottom()
+{
+	var isAtBottom = false;
+	var difference = chat.scrollTop - (chat.scrollHeight - chat.clientHeight);
+	if (difference < 0)
+	{
+		difference *= -1;
+	}
+	if (difference < scrollAtBottomThreshold)
+	{
+		isAtBottom = true;
+	}
+	return isAtBottom;
+}
+
 // Returns the outcome of a regex test
 function regexMatch(text, pattern)
 {
@@ -796,10 +813,19 @@ function performCommand(command)
 		}
 		else
 		{
-			addSystemMessage('[hangouts+]: Replacement patterns:');
-			for (var i = 0; i < replacementPatternsJoin.length; i++)
+			if (command[1] === 'clear')
 			{
-				addSystemMessage('\t' + replacementPatternsJoin[i] + ' to ' + replacementValuesJoin[i]);
+				replacementPatternAdditions = [];
+				replacementValueAdditions = [];
+				addSystemMessage('[hangouts+]: Non-default replacements cleared.');
+			}
+			else
+			{
+				addSystemMessage('[hangouts+]: Replacement patterns:');
+				for (var i = 0; i < replacementPatternsJoin.length; i++)
+				{
+					addSystemMessage('\t' + replacementPatternsJoin[i] + ' to ' + replacementValuesJoin[i]);
+				}
 			}
 		}
 	}
@@ -814,10 +840,19 @@ function performCommand(command)
 		}
 		else
 		{
-			addSystemMessage('[hangouts+]: Alerts:');
-			for (var i = 0; i < soundMatchPatternsJoin.length; i++)
+			if (command[1] === 'clear')
 			{
-				addSystemMessage('\t' + soundMatchPatternsJoin[i] + ' to ' + soundMatchURLsJoin[i]);
+				soundMatchPatternAdditions = [];
+				soundMatchURLAdditions = [];
+				addSystemMessage('[hangouts+]: Non-default alerts cleared.');
+			}
+			else
+			{
+				addSystemMessage('[hangouts+]: Alerts:');
+				for (var i = 0; i < soundMatchPatternsJoin.length; i++)
+				{
+					addSystemMessage('\t' + soundMatchPatternsJoin[i] + ' to ' + soundMatchURLsJoin[i]);
+				}
 			}
 		}
 	}
@@ -1105,7 +1140,7 @@ var hangoutObserver = new MutationObserver(function (mutations)
 				if (enableScrollingFix)
 				{
 					textArea.placeholder = 'Enter chat message or link here';
-					if (chat.scrollTop != chat.scrollHeight - chat.clientHeight)
+					if (!isChatScrolledToBottom())
 					{
 						fixedScrolling = true;
 						fixedScrollingPosition = chat.scrollTop;
@@ -1210,6 +1245,9 @@ var textArea;
 /* This is used as a mutation observer object because hangouts does not make a new div in the main chat
 window when the same user posts multiple messages before another user or system message is received */
 var lastMessageNode;
+
+// The amount of distance between the bottom of the scrollbar and the scroll position that can be assumed at the bottom
+var scrollAtBottomThreshold = 12;
 
 // Placeholders
 var chatBlacklist;
