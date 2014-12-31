@@ -3,9 +3,9 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.41
+// @version     1.43
 // @grant       none
-// @require     http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
+// @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @downloadURL https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js
 // ==/UserScript==
@@ -31,7 +31,7 @@ function initializeVariables()
 	// When true, emulates a twitch.tv style of deleting messages, allowing the user to click them to reveal what was said.
 	selectiveHearing = true;
 
-	// Keeps scroll position until you scroll back down. Issues on some browser installations
+	// Keeps scroll position until you scroll back down.
 	enableScrollingFix = true;
 
 	// Disable emoticons
@@ -43,6 +43,9 @@ function initializeVariables()
 
 	// supports #000, #FFFFFF, and rgba(r,g,b,a) as STRING colors
 	highlightColor = 'rgba(0,128,255,0.2)';
+
+	// Uses the colour of usernames as the background colour
+	invertNameColor = false;
 
 	// Word sound alerting. Use Regular Expression
 	soundMatchPatterns = [
@@ -72,70 +75,74 @@ function initializeVariables()
 
 	// Replace certain words in your message before they're sent
 	replacementPatterns = [
-		'/scripturl' //,
-		//'/sup',
-		//'/flex',
-		//'/raise',
-		//'/sparkles',
-		//'/lenny',
-		//'/shock',
-		//'o_/',
-		//'/xoxo',
-		//'/highfive',
-		//'/kick',
-		//'/denko',
-		//'/pat',
-		//'=\\)',
-		//'8\\|',
-		//'>:\\(',
-		//'/stare',
-		//'/lie',
-		//'/success',
-		//'/devil',
-		//'/stab',
-		//'/dunno',
-		//'/huh',
-		//'/what',
-		//'/cry',
-		//'/sigh',
-		//'/woohoo',
-		//'/crawl',
-		//'/yummy',
-		//'/escape',
-		//'/sorry'
+		'/scripturl',
+		'/sup',
+		'/flex',
+		'/raise',
+		'/sparkles',
+		'/lenny',
+		'/shock',
+		'o_/',
+		'/xoxo',
+		'/highfive',
+		'/kick',
+		'/denko',
+		'/pat',
+		'=\\)',
+		'8\\|',
+		'>:\\(',
+		'/stare',
+		'/lie',
+		'/success',
+		'/devil',
+		'/stab',
+		'/dunno',
+		'/huh',
+		'/what',
+		'/cry',
+		'/sigh',
+		'/woohoo',
+		'/crawl',
+		'/yummy',
+		'/escape',
+		'/sorry',
+		'/kiss',
+		'/kiss2'
 	];
 	replacementValues = [
-		'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js' //,
-		//'¯\\_(ツ)_/¯',
-		//'ᕦ༼ຈل͜ຈ༽ᕤ',
-		//'ヽ༼ຈل͜ຈ༽ﾉ',
-		//'(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
-		//'( ͡° ͜ʖ ͡°)',
-		//'∑(゜Д゜;)',
-		//'´ ▽ ` )ﾉ',
-		//'(づ￣ ³￣)づ',
-		//'(´▽｀)人(´▽｀)',
-		//'ヽ(#ﾟДﾟ)ﾉ┌┛Σ(ノ´Д`)ノ',
-		//'(´･ω･`)',
-		//'(ｏ・_・)ノ(. _ . )',
-		//'(๑╹◡╹)',
-		//'(⌐■_■)',
-		//'(　ﾉ｡ÒㅅÓ)ﾉ',
-		//'(=ↀωↀ=)✧',
-		//'∠( ᐛ 」∠)＿',
-		//'(•̀ᴗ•́)و ̑̑',
-		//'←～（o ｀▽´ )oΨ',
-		//'∋━━o(｀∀´oメ）～→',
-		//'(」ﾟヘﾟ)」',
-		//'( ?´_ゝ｀)',
-		//'(⊙_☉)',
-		//'o(╥﹏╥)o',
-		//'(一。一;;）',
-		//'Ｏ(≧▽≦)Ｏ',
-		//'_:(´ཀ`」 ∠):_',
-		//'ヽ(๑╹ڡ╹๑)ﾉ',
-		//'C= C= C= ┌(;・ω・)┘',
-		//'๑•́ㅿ•̀๑)'
+		'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js',
+		'¯\\_(ツ)_/¯',
+		'ᕦ༼ຈل͜ຈ༽ᕤ',
+		'ヽ༼ຈل͜ຈ༽ﾉ',
+		'(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
+		'( ͡° ͜ʖ ͡°)',
+		'∑(゜Д゜;)',
+		'´ ▽ ` )ﾉ',
+		'(づ￣ ³￣)づ',
+		'(´▽｀)人(´▽｀)',
+		'ヽ(#ﾟДﾟ)ﾉ┌┛Σ(ノ´Д`)ノ',
+		'(´･ω･`)',
+		'(ｏ・_・)ノ(. _ . )',
+		'(๑╹◡╹)',
+		'(⌐■_■)',
+		'(　ﾉ｡ÒㅅÓ)ﾉ',
+		'(=ↀωↀ=)✧',
+		'∠( ᐛ 」∠)＿',
+		'(•̀ᴗ•́)و',
+		'←～（o ｀▽´ )oΨ',
+		'∋━━o(｀∀´oメ）～→',
+		'(」ﾟヘﾟ)」',
+		'( ?´_ゝ｀)',
+		'(⊙_☉)',
+		'o(╥﹏╥)o',
+		'(一。一;;）',
+		'Ｏ(≧▽≦)Ｏ',
+		'＿(´ཀ`」 ∠)＿',
+		'ヽ(๑╹ڡ╹๑)ﾉ',
+		'C= C= C= ┌(;・ω・)┘',
+		'๑•́ㅿ•̀๑)',
+		'( ๑ ᴖ ᴈ ᴖ)ᴖ ᴑ ᴖ๑)❤',
+		'❤(๑ᴖ ᴑ ᴖ(ᴖ Ɛ ᴖ ๑ )'
 	];
 
 	chatBlacklistAdditions = [];
@@ -264,6 +271,7 @@ function loadPreferences()
 			results += additions + ' sound alerts.';
 		}
 		addSystemMessage('[hangouts+]:' + results);
+		loadCustomEmoticonList();
 	}
 	catch (exception)
 	{
@@ -381,6 +389,12 @@ var chatObserver = new MutationObserver(function (mutations)
 					{
 						// Retrieves the container of the users name
 						var chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
+						if (invertNameColor)
+						{
+							var color = chatMessageSender.style.backgroundColor;
+							chatMessageSender.style.backgroundColor = chatMessageSender.style.color;
+							chatMessageSender.style.color = color;
+						}
 						// Retrieves the container of the text message
 						// This can contain multiple child text nodes
 						var chatMessageMessage = chatMessage.childNodes[0].childNodes[1].childNodes[1];
@@ -597,9 +611,11 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 	// Emoticons
 	if (disableEmoticons)
 	{
-		for (var i = 0; i < chatMessageMessage.childNodes.length; i++)
+		var nodes = chatMessageMessage.getElementsByTagName("*");
+		for (var i = 0; i < nodes.length; i++)
 		{
-			var node = chatMessageMessage.childNodes[i];
+			var node = nodes[i];
+			var parent = node.parentNode;
 			/* Google handles emoticons in a very straight forward, consistent manner:
 			Emoticons are IMG elements with ALT tags.
 			The ALT tag is always the text that is replaced with the image, so just re-replace it.*/
@@ -610,11 +626,19 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 					var replacementText = node.alt;
 					var replacementNode = document.createElement('text');
 					replacementNode.innerHTML = replacementText;
-					chatMessageMessage.insertBefore(replacementNode, node);
-					chatMessageMessage.removeChild(node);
+					parent.insertBefore(replacementNode, node);
+					parent.removeChild(node);
 				}
 			}
 		}
+	}
+
+	// Custom emoticons
+	// This section should be reworked eventually to not use innerHTML
+	// Might also be missing some cases
+	if (customEmoticons)
+	{
+		parseForEmoticons([chatMessageMessage]);
 	}
 }
 
@@ -661,6 +685,51 @@ function parseInputText(text)
 	return text;
 }
 
+// This function parses chat message nodes for replacement entries in the customEmoticonData array
+// and restructures the DOM to replace those entries with the matching image
+// Takes some time when the picture is not in cache
+function parseForEmoticons(nodes)
+{
+	while (nodes.length > 0)
+	{
+		var node = nodes[0];
+		if (node.nodeType == 3)
+		{
+			var nodeValue = node.nodeValue;
+			for (var i = 0; i < customEmoticonData.length; i++)
+			{
+				var emoticon = customEmoticonData[i];
+				var matchIndex = nodeValue.indexOf(emoticon.replacement);
+				if (matchIndex != -1)
+				{
+					var image = document.createElement('img');
+					image.src = emoticon.url;
+					image.style.width = emoticon.width;
+					image.style.height = emoticon.height;
+					image.alt = emoticon.replacement;
+					var before = document.createTextNode(nodeValue.substr(0, matchIndex));
+					var after = document.createTextNode(nodeValue.substr(matchIndex + emoticon.replacement.length));
+					node.parentNode.insertBefore(before, node);
+					node.parentNode.insertBefore(image, node);
+					node.parentNode.insertBefore(after, node);
+					node.parentNode.removeChild(node);
+					nodes.push(before);
+					nodes.push(after);
+					break;
+				}
+			}
+		}
+		else
+		{
+			for (var j = 0; j < node.childNodes.length; j++)
+			{
+				nodes.push(node.childNodes[j]);
+			}
+		}
+		nodes.shift();
+	}
+}
+
 // The big list of commands
 function performCommand(command)
 {
@@ -686,6 +755,7 @@ function performCommand(command)
 			'alert regExp [soundURL]',
 			//'unalert regExp',
 			'alerts [clear]',
+			'refreshemoticons',
 			//'popout'
 			'raw message'
 		];
@@ -1106,6 +1176,11 @@ function performCommand(command)
 		initializeVariables();
 		addSystemMessage('[hangouts+]: Preferences cleared.');
 	}
+	// Load the list of custom emoticons again
+	else if (command[0] === '!refreshemoticons')
+	{
+		loadCustomEmoticonList();
+	}
 	// Reset all the preferences back to factory defaults
 	else if (command[0] === '!popout')
 	{
@@ -1269,6 +1344,29 @@ var replacementPatterns
 var replacementPatternAdditions;
 var replacementValues;
 var replacementValueAdditions;
+
+// Custom Emoticons
+var customEmoticons = true;
+
+var customEmoticonData = [];
+
+function loadCustomEmoticonList()
+{
+	var listUrl = 'https://dl.dropboxusercontent.com/u/12577282/cnd/emoticonList.txt';
+	try
+	{
+		jQuery.get(listUrl, function (data)
+		{
+			customEmoticonData = JSON.parse(data);
+			addSystemMessage('[hangouts+]: Loaded ' + customEmoticonData.length + ' custom emoticons.');
+		});
+	}
+	catch (exception)
+	{
+		customEmoticonData = [];
+		addSystemMessage('[hangouts+]: Loaded no custom emoticons.');
+	}
+}
 
 // Experimental Popout Chat Feature
 
