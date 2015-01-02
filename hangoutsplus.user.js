@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.44
+// @version     1.441
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -115,8 +115,9 @@ function loadPreferences()
 		{
 			currentVersion = 0.00;
 		}
-		addSystemMessage('[hangouts+]: ' + results);
+		addSystemMessage('[hangouts+]:' + results);
 		loadCustomEmoticonList();
+		loadCustomEmojiList();
 	}
 	catch (exception)
 	{
@@ -633,6 +634,7 @@ function performCommand(command)
 			//'unalert regExp',
 			'alerts [clear]',
 			'refreshemoticons',
+			'refreshemojis',
 			//'popout'
 			'raw message'
 		];
@@ -1070,6 +1072,11 @@ function performCommand(command)
 	{
 		loadCustomEmoticonList();
 	}
+	// Load the list of custom emojis again
+	else if (command[0] === '!refreshemojis')
+	{
+		loadCustomEmojiList();
+	}
 	else if (command[0] === '!import')
 	{
 		var merged = '';
@@ -1347,6 +1354,7 @@ function removeWordBreaks(node)
 var customEmoticons = true;
 
 var customEmoticonData = [];
+var customEmojiData = [];
 
 function loadCustomEmoticonList()
 {
@@ -1375,14 +1383,47 @@ function loadCustomEmoticonList()
 	}
 }
 
+function loadCustomEmojiList()
+{
+	var listUrl = 'https://dl.dropboxusercontent.com/u/12577282/cnd/emojiList.txt';
+	try
+	{
+		jQuery.get(listUrl, function (data)
+		{
+			var emojiTable = document.getElementById('emojiTable');
+			while (emojiTable.childNodes.length > 0)
+			{
+				emojiTable.removeChild(emojiTable.childNodes[0]);
+			}
+			customEmojiData = JSON.parse(data);
+			for (var i = 0; i < customEmojiData.length; i++)
+			{
+				addEmojiEntry(customEmojiData[i]);
+			}
+			addSystemMessage('[hangouts+]: Loaded ' + customEmojiData.length + ' custom emojis.');
+		});
+	}
+	catch (exception)
+	{
+		customEmojiData = [];
+		addSystemMessage('[hangouts+]: Loaded no custom emojis.');
+	}
+}
+
 function initializeCustomInterfaceElements()
 {
 	emoticonsPanel = initializeEmoticonsPanel();
 	emoticonsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/emoticons_icon.png');
+	emojiPanel = initializeEmojiPanel();
+	emojiChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/replacements_icon.png');
 
 	emoticonsChatButton.onclick = function ()
 	{
 		toggleDiv(emoticonsPanel, 'block');
+	}
+	emojiChatButton.onclick = function ()
+	{
+		toggleDiv(emojiPanel, 'block');
 	}
 }
 
@@ -1411,6 +1452,46 @@ function initializeEmoticonsPanel()
 {
 	var panel = document.createElement('div');
 	panel.id = 'emoticonTable';
+	panel.style.width = '500px';
+	panel.style.height = '300px';
+	panel.style.position = 'fixed';
+	panel.style.left = '50%';
+	panel.style.top = '50%';
+	panel.style.marginLeft = '-250px';
+	panel.style.marginTop = '-150px';
+	panel.style.backgroundColor = '#fff';
+	panel.style.zIndex = '9001';
+	panel.style.border = '1px solid #666';
+	panel.style.overflowY = 'auto';
+	panel.style.overflowX = 'hidden';
+	panel.style.display = 'none';
+	document.body.appendChild(panel);
+	return panel;
+}
+
+function addEmojiEntry(emoji)
+{
+	var link = document.createElement('div');
+	link.style.cursor = 'pointer';
+	link.style.padding = '4px';
+	link.style.border = '1px solid #666';
+	link.style.display = 'inline-block';
+	link.style.width = '30%';
+	link.style.fontSize = '12px';
+	link.style.lineHeight = '20px';
+	link.appendChild(document.createTextNode(emoji));
+	link.onclick = function (event)
+	{
+		textArea.value += event.target.childNodes[0].nodeValue;
+	}
+
+	document.getElementById('emojiTable').appendChild(link);
+}
+
+function initializeEmojiPanel()
+{
+	var panel = document.createElement('div');
+	panel.id = 'emojiTable';
 	panel.style.width = '500px';
 	panel.style.height = '300px';
 	panel.style.position = 'fixed';
