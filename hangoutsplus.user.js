@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.442
+// @version     1.443
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -1280,7 +1280,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up  to date version of the script
-var scriptVersion = 1.442;
+var scriptVersion = 1.443;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1458,6 +1458,7 @@ function addEmoticonEntry(emote)
 	{
 		textArea.value += emote.replacement;
 		toggleDiv(emoticonsPanel, 'block');
+		textArea.focus();
 	}
 	container.appendChild(image);
 	container.style.display = 'inline';
@@ -1500,6 +1501,7 @@ function addEmojiEntry(emoji)
 	{
 		textArea.value += event.target.childNodes[0].nodeValue;
 		toggleDiv(emojiPanel, 'block');
+		textArea.focus();
 	}
 
 	document.getElementById('emojiTable').appendChild(link);
