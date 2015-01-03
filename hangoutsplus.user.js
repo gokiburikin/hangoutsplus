@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.441
+// @version     1.442
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -1280,7 +1280,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up  to date version of the script
-var scriptVersion = 1.44;
+var scriptVersion = 1.442;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1425,6 +1425,22 @@ function initializeCustomInterfaceElements()
 	{
 		toggleDiv(emojiPanel, 'block');
 	}
+
+	$(document).on('click', function (event)
+	{
+		if (!$(event.target).closest('#emoticonTable').length && !$(event.target).closest(emoticonsChatButton).length)
+		{
+			emoticonsPanel.style.display = 'none';
+		}
+	});
+
+	$(document).on('click', function (event)
+	{
+		if (!$(event.target).closest('#emojiTable').length && !$(event.target).closest(emojiChatButton).length)
+		{
+			emojiPanel.style.display = 'none';
+		}
+	});
 }
 
 function addEmoticonEntry(emote)
@@ -1437,7 +1453,7 @@ function addEmoticonEntry(emote)
 	image.alt = emote.replacement;
 	image.title = emote.replacement;
 	image.style.cursor = 'pointer';
-	image.style.margin = '8px';
+	image.style.margin = '4px';
 	image.onclick = function ()
 	{
 		textArea.value += emote.replacement;
@@ -1455,10 +1471,10 @@ function initializeEmoticonsPanel()
 	panel.style.width = '500px';
 	panel.style.height = '300px';
 	panel.style.position = 'fixed';
-	panel.style.left = '50%';
-	panel.style.top = '50%';
-	panel.style.marginLeft = '-250px';
-	panel.style.marginTop = '-150px';
+	panel.style.right = '40px';
+	panel.style.bottom = '20px';
+	panel.style.marginLeft = '-500px';
+	panel.style.marginTop = '-300px';
 	panel.style.backgroundColor = '#fff';
 	panel.style.zIndex = '9001';
 	panel.style.border = '1px solid #666';
@@ -1483,6 +1499,7 @@ function addEmojiEntry(emoji)
 	link.onclick = function (event)
 	{
 		textArea.value += event.target.childNodes[0].nodeValue;
+		toggleDiv(emojiPanel, 'block');
 	}
 
 	document.getElementById('emojiTable').appendChild(link);
@@ -1495,10 +1512,10 @@ function initializeEmojiPanel()
 	panel.style.width = '500px';
 	panel.style.height = '300px';
 	panel.style.position = 'fixed';
-	panel.style.left = '50%';
-	panel.style.top = '50%';
-	panel.style.marginLeft = '-250px';
-	panel.style.marginTop = '-150px';
+	panel.style.right = '20px';
+	panel.style.bottom = '20px';
+	panel.style.marginLeft = '-500px';
+	panel.style.marginTop = '-300px';
 	panel.style.backgroundColor = '#fff';
 	panel.style.zIndex = '9001';
 	panel.style.border = '1px solid #666';
