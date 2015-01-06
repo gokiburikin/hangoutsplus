@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.443
+// @version     1.45
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -35,6 +35,9 @@ function initializeVariables()
 	// Disable emoticons
 	disableEmoticons = true;
 
+	// User Aliases
+	aliases = [];
+
 	// Word highlighting
 	highlights = [];
 	highlightSoundFilePath = 'https://www.gstatic.com/chat/sounds/hangout_alert_cc041792a9494bf2cb95e160aae459fe.mp3';
@@ -53,11 +56,7 @@ function initializeVariables()
 
 	// Replace certain words in your message before they're sent
 
-	replacements = [
-	{
-		'pattern': '/scripturl',
-		'replacement': 'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js'
-	}]
+	replacements = [];
 }
 
 // * Do not edit below this line * //
@@ -70,6 +69,7 @@ function savePreferences()
 		if (localStorageTest())
 		{
 			localStorage.setItem('scriptVersion', JSON.stringify(scriptVersion));
+			localStorage.setItem('aliases', JSON.stringify(aliases));
 			localStorage.setItem('blacklist', JSON.stringify(chatBlacklist));
 			localStorage.setItem('highlights', JSON.stringify(highlights));
 			localStorage.setItem('replacements', JSON.stringify(replacements));
@@ -96,6 +96,7 @@ function loadPreferences()
 		{
 			// 1.43 is for the first version that the scriptVersion was introduced
 			currentVersion = tryLoadPreference('scriptVersion', 1.43);
+			aliases = tryLoadPreference('aliases', []);
 			blacklist = tryLoadPreference('blacklist', []);
 			highlights = tryLoadPreference('highlights', []);
 			replacements = tryLoadPreference('replacements', []);
@@ -130,6 +131,7 @@ function loadPreferences()
 function clearPreferences()
 {
 	localStorage.removeItem('blacklist');
+	localStorage.removeItem('aliases');
 	localStorage.removeItem('highlights');
 	localStorage.removeItem('replacements');
 	localStorage.removeItem('soundAlerts');
@@ -141,7 +143,7 @@ function clearPreferences()
 
 function migrate(currentVersion, scriptVersion)
 {
-	if (currentVersion == 1.43 && scriptVersion == 1.44)
+	if (currentVersion == 1.43)
 	{
 		try
 		{
@@ -636,7 +638,9 @@ function performCommand(command)
 			'refreshemoticons',
 			'refreshemojis',
 			//'popout'
-			'raw message'
+			'raw message',
+			'alias username @ replacement',
+			'!scripturl'
 		];
 		for (var i = 0; i < commands.length; i++)
 		{
@@ -817,6 +821,63 @@ function performCommand(command)
 					addSystemMessage('\t' + soundAlerts[i].pattern + ' to ' + soundAlerts[i].url);
 				}
 			}
+		}
+	}
+	// Alias command
+	/*  */
+	else if (command[0] === '!alias')
+	{
+		var split = 1;
+		for (int i = 1; i < command.length; i++)
+		{
+			if (command[i] === '@')
+			{
+				split = i;
+			}
+		}
+		var merged = '';
+		for (var i = split; i < command.length; i++)
+		{
+			merged += ' ' + command[i];
+		}
+		merged = merged.substr(1);
+		if (command[1])
+		{
+			var aliasIndex = -1;
+			for (var i = 0; i < aliases.length; i++)
+			{
+				if (aliases[i].pattern === command[1])
+				{
+					aliasIndex = i;
+					break;
+				}
+			}
+			if (aliasIndex == -1)
+			{
+				aliases.push(
+				{
+					'pattern': command[1],
+					'url': merged
+				});
+				addSystemMessage('[hangouts+]: Added alias ' + command[1] + ' to ' + merged + '.');
+			}
+			else
+			{
+				if (!merged || merged.length == 0)
+				{
+					aliases.splice(aliasIndex, 1);
+					addSystemMessage('[hangouts+]: Removed alias ' + command[1] + '.');
+				}
+				else
+				{
+					aliases[aliasIndex].url = merged;
+					addSystemMessage('[hangouts+]: Updated alias ' + command[1] + ' now ' + merged + '.');
+				}
+			}
+		}
+		else
+		{
+			addSystemMessage('[hangouts+]: Incomplete command.');
 		}
 	}
 	// Highlights command
@@ -1166,6 +1227,11 @@ function performCommand(command)
 	{
 		initializePopoutChat();
 	}
+	// Pastes the scripts url into the textarea
+	else if (command[0] === '!scripturl')
+	{
+		textArea.value = 'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js';
+	}
 	// The command didn't exist
 	else
 	{
@@ -1231,16 +1297,13 @@ var hangoutObserver = new MutationObserver(function (mutations)
 				{
 					if (textArea.value.substr(0, 5) != '!raw ')
 					{
+						textArea.value = parseInputText(textArea.value);
 						if (textArea.value[0] === '!')
 						{
 							var command = textArea.value.split(' ');
 							textArea.value = '';
 							performCommand(command);
 							return false;
-						}
-						else
-						{
-							textArea.value = parseInputText(textArea.value);
 						}
 					}
 					else
@@ -1279,8 +1342,8 @@ hangoutObserver.observe(document.querySelector('body'),
 
 // Variable initialization
 
-// Keeps track of the most up  to date version of the script
-var scriptVersion = 1.443;
+// Keeps track of the most up to date version of the script
+var scriptVersion = 1.45;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
