@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     1.45
+// @version     2.0
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -303,6 +303,16 @@ var chatObserver = new MutationObserver(function (mutations)
 							var color = chatMessageSender.style.backgroundColor;
 							chatMessageSender.style.backgroundColor = chatMessageSender.style.color;
 							chatMessageSender.style.color = color;
+
+						}
+						for (var i = 0; i < aliases.length; i++)
+						{
+							console.log(aliases[i].user);
+							console.log(chatMessageSender.childNodes[0].nodeValue);
+							if (aliases[i].user === chatMessageSender.childNodes[0].nodeValue)
+							{
+								chatMessageSender.childNodes[0].nodeValue = aliases[i].replacement;
+							}
 						}
 						// Retrieves the container of the text message
 						// This can contain multiple child text nodes
@@ -824,29 +834,34 @@ function performCommand(command)
 		}
 	}
 	// Alias command
-	/*  */
+	/* Handles adding, updating, and removing aliases */
 	else if (command[0] === '!alias')
 	{
-		var split = 1;
-		for (int i = 1; i < command.length; i++)
+		var split = -1;
+		for (var i = 1; i < command.length; i++)
 		{
 			if (command[i] === '@')
 			{
 				split = i;
 			}
 		}
+		var fullUserName = command[1];
+		for (var i = 2; i < split; i++)
+		{
+			fullUserName += ' ' + command[i];
+		}
 		var merged = '';
-		for (var i = split; i < command.length; i++)
+		for (var i = split + 1; i < command.length; i++)
 		{
 			merged += ' ' + command[i];
 		}
 		merged = merged.substr(1);
-		if (command[1])
+		if (split > 0 && command.length > split)
 		{
 			var aliasIndex = -1;
 			for (var i = 0; i < aliases.length; i++)
 			{
-				if (aliases[i].pattern === command[1])
+				if (aliases[i].user === fullUserName)
 				{
 					aliasIndex = i;
 					break;
@@ -856,28 +871,52 @@ function performCommand(command)
 			{
 				aliases.push(
 				{
-					'pattern': command[1],
-					'url': merged
+					'user': fullUserName,
+					'replacement': merged
 				});
-				addSystemMessage('[hangouts+]: Added alias ' + command[1] + ' to ' + merged + '.');
+				addSystemMessage('[hangouts+]: Added alias ' + fullUserName + ' to ' + merged + '.');
 			}
 			else
 			{
 				if (!merged || merged.length == 0)
 				{
 					aliases.splice(aliasIndex, 1);
-					addSystemMessage('[hangouts+]: Removed alias ' + command[1] + '.');
+					addSystemMessage('[hangouts+]: Removed alias ' + fullUserName + '.');
 				}
 				else
 				{
-					aliases[aliasIndex].url = merged;
-					addSystemMessage('[hangouts+]: Updated alias ' + command[1] + ' now ' + merged + '.');
+					aliases[aliasIndex].replacement = merged;
+					addSystemMessage('[hangouts+]: Updated alias ' + fullUserName + ' now ' + merged + '.');
 				}
 			}
 		}
 		else
 		{
 			addSystemMessage('[hangouts+]: Incomplete command.');
+		}
+	}
+	// Aliases list or clear aliases
+	else if (command[0] === '!aliases')
+	{
+		if (aliases.length == 0)
+		{
+			addSystemMessage('[hangouts+]: No aliases exist.');
+		}
+		else
+		{
+			if (command[1] === 'clear')
+			{
+				aliases = [];
+				addSystemMessage('[hangouts+]: Aliases cleared.');
+			}
+			else
+			{
+				addSystemMessage('[hangouts+]: Aliases:');
+				for (var i = 0; i < aliases.length; i++)
+				{
+					addSystemMessage('\t' + aliases[i].user + ' to ' + aliases[i].replacement);
+				}
+			}
 		}
 	}
 	// Highlights command
@@ -1343,7 +1382,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 1.45;
+var scriptVersion = 2.0;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
