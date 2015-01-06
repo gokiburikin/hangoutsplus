@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.01
+// @version     2.02
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -694,6 +694,8 @@ function performCommand(command)
 		{
 			merged += ' ' + command[i];
 		}
+
+
 		merged = merged.substr(1);
 		if (command[1])
 		{
@@ -706,7 +708,7 @@ function performCommand(command)
 					break;
 				}
 			}
-			if (replacementIndex == -1)
+			if (replacementIndex == -1 && command[2])
 			{
 				replacements.push(
 				{
@@ -755,7 +757,7 @@ function performCommand(command)
 					break;
 				}
 			}
-			if (soundAlertIndex == -1)
+			if (soundAlertIndex == -1 && command[2])
 			{
 				soundAlerts.push(
 				{
@@ -1334,7 +1336,6 @@ var hangoutObserver = new MutationObserver(function (mutations)
 				{
 					if (textArea.value.substr(0, 5) != '!raw ')
 					{
-						textArea.value = parseInputText(textArea.value);
 						if (textArea.value[0] === '!')
 						{
 							var command = textArea.value.split(' ');
@@ -1342,6 +1343,7 @@ var hangoutObserver = new MutationObserver(function (mutations)
 							performCommand(command);
 							return false;
 						}
+						textArea.value = parseInputText(textArea.value);
 					}
 					else
 					{
@@ -1380,7 +1382,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.01;
+var scriptVersion = 2.02;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
