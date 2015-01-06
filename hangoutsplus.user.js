@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.0
+// @version     2.01
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -305,13 +305,11 @@ var chatObserver = new MutationObserver(function (mutations)
 							chatMessageSender.style.color = color;
 
 						}
-						for (var i = 0; i < aliases.length; i++)
+						for (var j = 0; j < aliases.length; j++)
 						{
-							console.log(aliases[i].user);
-							console.log(chatMessageSender.childNodes[0].nodeValue);
-							if (aliases[i].user === chatMessageSender.childNodes[0].nodeValue)
+							if (aliases[j].user === chatMessageSender.childNodes[0].nodeValue)
 							{
-								chatMessageSender.childNodes[0].nodeValue = aliases[i].replacement;
+								chatMessageSender.childNodes[0].nodeValue = aliases[j].replacement;
 							}
 						}
 						// Retrieves the container of the text message
@@ -1382,7 +1380,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.0;
+var scriptVersion = 2.01;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
