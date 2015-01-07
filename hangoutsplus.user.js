@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.02
+// @version     2.03
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -1382,7 +1382,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.02;
+var scriptVersion = 2.03;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1466,7 +1466,7 @@ function loadCustomEmoticonList()
 		jQuery.get(listUrl, function (data)
 		{
 			var emoticonTable = document.getElementById('emoticonTable');
-			while (emoticonTable.childNodes.length > 0)
+			while (emoticonTable && emoticonTable.childNodes.length > 0)
 			{
 				emoticonTable.removeChild(emoticonTable.childNodes[0]);
 			}
@@ -1493,7 +1493,7 @@ function loadCustomEmojiList()
 		jQuery.get(listUrl, function (data)
 		{
 			var emojiTable = document.getElementById('emojiTable');
-			while (emojiTable.childNodes.length > 0)
+			while (emojiTable && emojiTable.childNodes.length > 0)
 			{
 				emojiTable.removeChild(emojiTable.childNodes[0]);
 			}
@@ -1515,8 +1515,8 @@ function loadCustomEmojiList()
 function initializeCustomInterfaceElements()
 {
 	emoticonsPanel = initializeEmoticonsPanel();
-	emoticonsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/emoticons_icon.png');
 	emojiPanel = initializeEmojiPanel();
+	emoticonsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/emoticons_icon.png');
 	emojiChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/replacements_icon.png');
 
 	emoticonsChatButton.onclick = function ()
@@ -1605,7 +1605,6 @@ function addEmojiEntry(emoji)
 		toggleDiv(emojiPanel, 'block');
 		textArea.focus();
 	}
-
 	document.getElementById('emojiTable').appendChild(link);
 }
 
@@ -1632,7 +1631,7 @@ function initializeEmojiPanel()
 
 function addCustomChatButton(imageUrl)
 {
-	var chatButtonContainer = document.getElementById(':sx.qo').parentNode;
+	var chatButtonContainer = document.getElementById(':sx.ro').parentNode;
 	var customButton = document.createElement('div');
 	customButton.className = 'Kc-Qt-b-m';
 	var customButtonDiv = document.createElement('div');
