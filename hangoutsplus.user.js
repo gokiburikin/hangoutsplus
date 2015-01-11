@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.03
+// @version     2.04
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -1382,7 +1382,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.03;
+var scriptVersion = 2.04;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1550,12 +1550,11 @@ function addEmoticonEntry(emote)
 	var container = document.createElement('div');
 	var image = document.createElement('img');
 	image.src = emote.url;
-	image.style.width = emote.width;
-	image.style.height = emote.height;
-	image.alt = emote.replacement;
-	image.title = emote.replacement;
+	image.style.maxWidth = '50px';
+	image.style.maxHeight = '50px';
 	image.style.cursor = 'pointer';
-	image.style.margin = '4px';
+	image.style.margin = '2px';
+	image.style.padding = '2px';
 	image.onclick = function ()
 	{
 		textArea.value += emote.replacement;
