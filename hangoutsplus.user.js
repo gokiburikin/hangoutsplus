@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.04
+// @version     2.05
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -1382,7 +1382,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.04;
+var scriptVersion = 2.05;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1630,7 +1630,7 @@ function initializeEmojiPanel()
 
 function addCustomChatButton(imageUrl)
 {
-	var chatButtonContainer = document.getElementById(':sx.ro').parentNode;
+	var chatButtonContainer = document.getElementById(':sx.uo').parentNode;
 	var customButton = document.createElement('div');
 	customButton.className = 'Kc-Qt-b-m';
 	var customButtonDiv = document.createElement('div');
