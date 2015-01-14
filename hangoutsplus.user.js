@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.06
+// @version     2.07
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -55,8 +55,11 @@ function initializeVariables()
 	focusChatFromBlur = true;
 
 	// Replace certain words in your message before they're sent
-
 	replacements = [];
+
+	// Input history
+	saveInputHistory = true;
+	inputHistory = [];
 }
 
 // * Do not edit below this line * //
@@ -78,6 +81,7 @@ function savePreferences()
 			localStorage.setItem('selectiveHearing', JSON.stringify(selectiveHearing));
 			localStorage.setItem('purgeMode', JSON.stringify(purgeBlacklistedMessages));
 			localStorage.setItem('enableScrollingFix', JSON.stringify(enableScrollingFix));
+			localStorage.setItem('saveInputHistory', JSON.stringify(saveInputHistory));
 		}
 	}
 	catch (exception)
@@ -105,6 +109,7 @@ function loadPreferences()
 			selectiveHearing = tryLoadPreference('selectiveHearing', selectiveHearing);
 			purgeBlacklistedMessages = tryLoadPreference('purgeMode', purgeBlacklistedMessages);
 			enableScrollingFix = tryLoadPreference('enableScrollingFix', enableScrollingFix);
+			saveInputHistory = tryLoadPreference('saveInputHistory', saveInputHistory);
 			migrate(currentVersion, scriptVersion);
 
 			results = 'Loaded ' + blacklist.length + ' blacklist entries, ';
@@ -139,6 +144,7 @@ function clearPreferences()
 	localStorage.removeItem('selectiveHearing');
 	localStorage.removeItem('purgeMode');
 	localStorage.removeItem('enableScrollingFix');
+	localStorage.removeItem('saveInputHistory');
 }
 
 function migrate(currentVersion, scriptVersion)
@@ -648,7 +654,8 @@ function performCommand(command)
 			//'popout'
 			'raw message',
 			'alias username @ replacement',
-			'!scripturl'
+			'inputhistory [on/off]',
+			'scripturl'
 		];
 		for (var i = 0; i < commands.length; i++)
 		{
@@ -1048,6 +1055,33 @@ function performCommand(command)
 		}
 	}
 
+	// Input history command
+	/* Handles toggling and viewing status of input history */
+	else if (command[0] === '!inputhistory')
+	{
+		if (command[1] === 'on')
+		{
+			saveInputHistory = true;
+			addSystemMessage('[hangouts+]: Input history enabled.');
+		}
+		else if (command[1] === 'off')
+		{
+			saveInputHistory = false;
+			addSystemMessage('[hangouts+]: Input history disabled.');
+		}
+		else
+		{
+			if (saveInputHistory)
+			{
+				addSystemMessage('[hangouts+]: Input history is enabled.');
+			}
+			else
+			{
+				addSystemMessage('[hangouts+]: Input history is disabled.');
+			}
+		}
+	}
+
 	// Blacklist selective hearing command
 	/* Handles toggling and viewing status of selective hearing */
 	else if (command[0] === '!selective')
@@ -1279,6 +1313,40 @@ function performCommand(command)
 	savePreferences();
 }
 
+function nextInputHistory()
+{
+	inputHistoryIndex++;
+	if (inputHistoryIndex == inputHistory.length)
+	{
+		inputHistoryIndex--;
+	}
+	if (inputHistory.length > 0)
+	{
+		textArea.value = inputHistory[inputHistoryIndex];
+	}
+}
+
+function previousInputHistory()
+{
+	inputHistoryIndex--;
+	if (inputHistoryIndex == -2)
+	{
+		inputHistoryIndex++;
+	}
+	if (inputHistoryIndex == -1)
+	{
+		textArea.value = '';
+	}
+	else if (inputHistory.length > 0)
+	{
+		textArea.value = inputHistory[inputHistoryIndex];
+	}
+}
+
+function lastInputHistory()
+{
+	inputHistoryIndex = -1;
+}
 
 // The main observer used to load and intialize the script
 var hangoutObserver = new MutationObserver(function (mutations)
@@ -1334,6 +1402,11 @@ var hangoutObserver = new MutationObserver(function (mutations)
 				}
 				else if (event.which == 13)
 				{
+					if (saveInputHistory)
+					{
+						inputHistory.unshift(textArea.value);
+						lastInputHistory();
+					}
 					if (textArea.value.substr(0, 5) != '!raw ')
 					{
 						if (textArea.value[0] === '!')
@@ -1349,6 +1422,21 @@ var hangoutObserver = new MutationObserver(function (mutations)
 					{
 						textArea.value = textArea.value.substr(5);
 					}
+				}
+				else if (saveInputHistory && event.which == 38)
+				{
+					if (textArea.value.length > 0 && inputHistoryIndex == -1)
+					{
+						inputHistory.unshift(textArea.value);
+						nextInputHistory();
+					}
+					nextInputHistory();
+					return false;
+				}
+				else if (saveInputHistory && event.which == 40)
+				{
+					previousInputHistory();
+					return false;
 				}
 			}
 			textAreaInit = true;
@@ -1382,7 +1470,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.06;
+var scriptVersion = 2.07;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1413,6 +1501,11 @@ var lastMessageNode;
 
 // The amount of distance between the bottom of the scrollbar and the scroll position that can be assumed at the bottom
 var scrollAtBottomThreshold = 12;
+
+// Input history
+var saveInputHistory = true;
+var inputHistory = [];
+var inputHistoryIndex = -1;
 
 // Placeholders
 var chatBlacklist;
