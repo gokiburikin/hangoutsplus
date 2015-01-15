@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.07
+// @version     2.08
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -1390,7 +1390,35 @@ var hangoutObserver = new MutationObserver(function (mutations)
 		textArea = document.querySelector('.Zj');
 		if (textArea)
 		{
-			textArea.onkeydown = function (event)
+			$(document)[0].addEventListener('keydown', function (event)
+			{
+				if ($(textArea).is(":focus"))
+				{
+					if (saveInputHistory && event.which == 38)
+					{
+						if (textArea.value.length > 0 && inputHistoryIndex == -1)
+						{
+							inputHistory.unshift(textArea.value);
+							nextInputHistory();
+						}
+						nextInputHistory();
+						event.useCapture = true;
+						event.preventDefault();
+						event.stopPropagation();
+						return false;
+					}
+					else if (saveInputHistory && event.which == 40)
+					{
+						previousInputHistory();
+						event.useCapture = true;
+						event.preventDefault();
+						event.stopPropagation();
+						return false;
+					}
+					$(textArea).focus();
+				}
+			}, true);
+			$(textArea)[0].addEventListener('keydown', function (event)
 			{
 				if (event.shiftKey)
 				{
@@ -1423,22 +1451,8 @@ var hangoutObserver = new MutationObserver(function (mutations)
 						textArea.value = textArea.value.substr(5);
 					}
 				}
-				else if (saveInputHistory && event.which == 38)
-				{
-					if (textArea.value.length > 0 && inputHistoryIndex == -1)
-					{
-						inputHistory.unshift(textArea.value);
-						nextInputHistory();
-					}
-					nextInputHistory();
-					return false;
-				}
-				else if (saveInputHistory && event.which == 40)
-				{
-					previousInputHistory();
-					return false;
-				}
-			}
+
+			}, true);
 			textAreaInit = true;
 		}
 	}
@@ -1470,7 +1484,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.07;
+var scriptVersion = 2.08;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1723,7 +1737,7 @@ function initializeEmojiPanel()
 
 function addCustomChatButton(imageUrl)
 {
-	var chatButtonContainer = $('[aria-label="Emoticon Picker"]')[0].parentNode;
+	var chatButtonContainer = $('.Kc-b-m')[0];
 	var customButton = document.createElement('div');
 	customButton.className = 'Kc-Qt-b-m';
 	var customButtonDiv = document.createElement('div');
