@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.08
+// @version     2.09
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -124,6 +124,7 @@ function loadPreferences()
 		addSystemMessage('[hangouts+]:' + results);
 		loadCustomEmoticonList();
 		loadCustomEmojiList();
+		loadCustomSoundsList();
 	}
 	catch (exception)
 	{
@@ -1201,15 +1202,20 @@ function performCommand(command)
 		initializeVariables();
 		addSystemMessage('[hangouts+]: Preferences cleared.');
 	}
-	// Load the list of custom emoticons again
+	// Load the list of custom emoticons
 	else if (command[0] === '!refreshemoticons')
 	{
 		loadCustomEmoticonList();
 	}
-	// Load the list of custom emojis again
+	// Load the list of custom emojis
 	else if (command[0] === '!refreshemojis')
 	{
 		loadCustomEmojiList();
+	}
+	// Load the list of custom sounds
+	else if (command[0] === '!refreshsounds')
+	{
+		loadCustomSoundsList();
 	}
 	else if (command[0] === '!import')
 	{
@@ -1534,12 +1540,14 @@ var soundAlerts;
 var replacements;
 var highlights;
 
-var optionsChatButton;
 var emoticonsChatButton;
+var emojiChatButton;
+var soundsChatButton;
 var emoticonsPanel;
-var replacementsChatButton;
+var emojiPanel;
+var soundsPanel;
 
-// Function for removing the wbr elements hangouts automatically adds after every 10th character in a word
+// Method for removing the wbr elements hangouts automatically adds after every 10th character in a word
 function removeWordBreaks(node)
 {
 	for (var i = 0; i < node.childNodes.length; i++)
@@ -1561,9 +1569,9 @@ function removeWordBreaks(node)
 
 // Custom Emoticons
 var customEmoticons = true;
-
 var customEmoticonData = [];
 var customEmojiData = [];
+var customSoundsData = [];
 
 function loadCustomEmoticonList()
 {
@@ -1619,12 +1627,41 @@ function loadCustomEmojiList()
 	}
 }
 
+function loadCustomSoundsList()
+{
+	var listUrl = 'https://dl.dropboxusercontent.com/u/12577282/cnd/soundAlertList.txt';
+	try
+	{
+		jQuery.get(listUrl, function (data)
+		{
+			var soundsTable = document.getElementById('soundsTable');
+			while (soundsTable && soundsTable.childNodes.length > 0)
+			{
+				soundsTable.removeChild(soundsTable.childNodes[0]);
+			}
+			customSoundsData = JSON.parse(data);
+			for (var i = 0; i < customSoundsData.length; i++)
+			{
+				addSoundsEntry(customSoundsData[i]);
+			}
+			addSystemMessage('[hangouts+]: Loaded ' + customSoundsData.length + ' custom sounds.');
+		});
+	}
+	catch (exception)
+	{
+		customSoundsData = [];
+		addSystemMessage('[hangouts+]: Loaded no custom sounds.');
+	}
+}
+
 function initializeCustomInterfaceElements()
 {
 	emoticonsPanel = initializeEmoticonsPanel();
 	emojiPanel = initializeEmojiPanel();
+	soundsPanel = initializeSoundsPanel();
 	emoticonsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/emoticons_icon.png');
 	emojiChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/replacements_icon.png');
+	soundsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/sounds_icon.png');
 
 	emoticonsChatButton.onclick = function ()
 	{
@@ -1633,6 +1670,10 @@ function initializeCustomInterfaceElements()
 	emojiChatButton.onclick = function ()
 	{
 		toggleDiv(emojiPanel, 'block');
+	}
+	soundsChatButton.onclick = function ()
+	{
+		toggleDiv(soundsPanel, 'block');
 	}
 
 	$(document).on('click', function (event)
@@ -1648,6 +1689,14 @@ function initializeCustomInterfaceElements()
 		if (!$(event.target).closest('#emojiTable').length && !$(event.target).closest(emojiChatButton).length)
 		{
 			emojiPanel.style.display = 'none';
+		}
+	});
+
+	$(document).on('click', function (event)
+	{
+		if (!$(event.target).closest('#soundsTable').length && !$(event.target).closest(soundsChatButton).length)
+		{
+			soundsPanel.style.display = 'none';
 		}
 	});
 }
@@ -1680,7 +1729,7 @@ function initializeEmoticonsPanel()
 	panel.style.width = '500px';
 	panel.style.height = '300px';
 	panel.style.position = 'fixed';
-	panel.style.right = '40px';
+	panel.style.right = '60px';
 	panel.style.bottom = '20px';
 	panel.style.marginLeft = '-500px';
 	panel.style.marginTop = '-300px';
@@ -1718,6 +1767,93 @@ function initializeEmojiPanel()
 {
 	var panel = document.createElement('div');
 	panel.id = 'emojiTable';
+	panel.style.width = '500px';
+	panel.style.height = '300px';
+	panel.style.position = 'fixed';
+	panel.style.right = '40px';
+	panel.style.bottom = '20px';
+	panel.style.marginLeft = '-500px';
+	panel.style.marginTop = '-300px';
+	panel.style.backgroundColor = '#fff';
+	panel.style.zIndex = '9001';
+	panel.style.border = '1px solid #666';
+	panel.style.overflowY = 'auto';
+	panel.style.overflowX = 'hidden';
+	panel.style.display = 'none';
+	document.body.appendChild(panel);
+	return panel;
+}
+
+function addSoundsEntry(sound)
+{
+	var link = document.createElement('div');
+	link.style.cursor = 'pointer';
+	link.style.padding = '4px';
+	link.style.border = '1px solid #666';
+	link.style.display = 'inline-block';
+	link.style.width = '30%';
+	link.style.fontSize = '12px';
+	link.style.lineHeight = '20px';
+	link.title = sound.pattern;
+	link.sound = sound;
+	link.update = function ()
+	{
+		var soundAlertIndex = -1;
+		for (var i = 0; i < soundAlerts.length; i++)
+		{
+			if (soundAlerts[i].pattern === this.sound.pattern)
+			{
+				soundAlertIndex = i;
+				break;
+			}
+		}
+		if (soundAlertIndex == -1)
+		{
+			this.style.backgroundColor = '#FFF';
+		}
+		else
+		{
+			this.style.backgroundColor = '#9F9';
+		}
+	}
+	link.update();
+	link.appendChild(document.createTextNode(sound.alias));
+	link.onclick =
+
+	function (event)
+	{
+		var soundAlertIndex = -1;
+		for (var i = 0; i < soundAlerts.length; i++)
+		{
+			if (soundAlerts[i].pattern === sound.pattern)
+			{
+				soundAlertIndex = i;
+				break;
+			}
+		}
+		if (soundAlertIndex == -1)
+		{
+			soundAlerts.push(
+			{
+				'pattern': sound.pattern,
+				'url': sound.url
+			});
+			addSystemMessage('[hangouts+]: Added alert ' + sound.pattern + ' plays ' + sound.url + '.');
+		}
+		else
+		{
+			soundAlerts.splice(soundAlertIndex, 1);
+			addSystemMessage('[hangouts+]: Removed alert ' + sound.pattern + ' no longer plays ' + sound.url + '.');
+		}
+		this.update();
+	}
+	document.getElementById('soundsTable').appendChild(link);
+}
+
+function initializeSoundsPanel()
+{
+	var panel = document.createElement('div');
+	panel.id = 'soundsTable';
 	panel.style.width = '500px';
 	panel.style.height = '300px';
 	panel.style.position = 'fixed';
@@ -1793,10 +1929,16 @@ initializePopoutChat = function ()
 			popoutChatWindowTextArea.className = 'textArea';
 			popoutChatWindow.document.body.appendChild(popoutChatWindowMessageArea);
 			popoutChatWindow.document.body.appendChild(popoutChatWindowTextArea);
-			popoutChatWindowTextArea.onkeydown = textArea.onkeydown;
-			popoutChatWindowTextArea.onkeyup = textArea.onkeyup;
-			popoutChatWindowTextArea.oninput = textArea.oninput;
-			popoutChatWindowTextArea.onkeypress = textArea.onkeypress;
+			popoutChatWindowTextArea.onkeydown = function (event)
+			{
+				if (event.which == 13)
+				{
+					$(textArea).trigger(event);
+					textArea.keydown(event);
+					popoutChatWindowTextArea.value = "";
+				}
+				textArea.value = popoutChatWindowTextArea.value;
+			}
 			addSystemMessage('[hangouts+]: Popout chat initialized.');
 		}
 	}
