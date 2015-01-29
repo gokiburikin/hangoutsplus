@@ -3,12 +3,13 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.09
+// @version     2.10
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @downloadURL https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js
 // ==/UserScript==
+// TODO: Just run the command when clicking sound buttons
 
 // User preferences
 /* Most of these settings are meant to be edited using the commands while in google hangouts.
@@ -414,113 +415,142 @@ function regexMatch(text, pattern)
 function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 {
 	// Highlights
-	if (highlights.length > 0)
+	try
 	{
-		var hasPlayed = false;
-		if (!hasPlayed)
+		if (highlights.length > 0)
 		{
-			for (var i = 0; i < highlights.length; i++)
+			var hasPlayed = false;
+			if (!hasPlayed)
+			{
+				for (var i = 0; i < highlights.length; i++)
+				{
+					for (var j = 0; j < chatMessageMessage.childNodes.length; j++)
+					{
+						if (chatMessageMessage.childNodes[j].nodeType == 3)
+						{
+							var message = chatMessageMessage.childNodes[j].nodeValue;
+							if (regexMatch(message, highlights[i]))
+							{
+								chatMessageMessage.style.backgroundColor = highlightColor;
+								var audio = new Audio(highlightSoundFilePath);
+								audio.play();
+								hasPlayed = true;
+								break;
+							}
+						}
+					}
+					if (hasPlayed)
+					{
+						break;
+					}
+				}
+			}
+		}
+	}
+	catch (exception)
+	{
+		console.log('[hangouts+]: Error handling highlight: ' + exception.message);
+	}
+
+
+	// Blacklist
+	try
+	{
+		for (var j = 0; j < blacklist.length; j++)
+		{
+			if (blacklist[j].toLowerCase() == chatMessageSender.nodeValue.toLowerCase())
+			{
+				if (!purgeBlacklistedMessages)
+				{
+
+					if (selectiveHearing)
+					{
+						var deletedMessage = document.createElement("a");
+						var originalMessage = chatMessageMessage.innerHTML;
+						deletedMessage.innerHTML = '&lt;message deleted&gt';
+						deletedMessage.onclick = (function ()
+						{
+							deletedMessage.innerHTML = originalMessage;
+						})
+						chatMessageMessage.innerHTML = '';
+						chatMessageMessage.appendChild(deletedMessage);
+					}
+					else
+					{
+						chatMessageMessage.innerHTML = '&lt;message deleted&gt;';
+					}
+				}
+				else
+				{
+					chat.removeChild(node);
+				}
+			}
+		}
+	}
+	catch (exception)
+	{
+		console.log('[hangouts+]: Error handling blacklist: ' + exception.message);
+	}
+
+	try
+	{
+		// Sounds
+		for (var i = 0; i < soundAlerts.length; i++)
+		{
+			var hasPlayed = false;
+			if (!hasPlayed)
 			{
 				for (var j = 0; j < chatMessageMessage.childNodes.length; j++)
 				{
 					if (chatMessageMessage.childNodes[j].nodeType == 3)
 					{
 						var message = chatMessageMessage.childNodes[j].nodeValue;
-						if (regexMatch(message, highlights[i]))
+						if (regexMatch(message, soundAlerts[i].pattern))
 						{
-							chatMessageMessage.style.backgroundColor = highlightColor;
-							var audio = new Audio(highlightSoundFilePath);
+							var audio = new Audio(soundAlerts[i].url);
 							audio.play();
 							hasPlayed = true;
-							break;
 						}
 					}
 				}
-				if (hasPlayed)
-				{
-					break;
-				}
 			}
 		}
 	}
-
-	// Blacklist
-	for (var j = 0; j < blacklist.length; j++)
+	catch (exception)
 	{
-		if (blacklist[j].toLowerCase() == chatMessageSender.nodeValue.toLowerCase())
-		{
-			if (!purgeBlacklistedMessages)
-			{
-
-				if (selectiveHearing)
-				{
-					var deletedMessage = document.createElement("a");
-					var originalMessage = chatMessageMessage.innerHTML;
-					deletedMessage.innerHTML = '&lt;message deleted&gt';
-					deletedMessage.onclick = (function ()
-					{
-						deletedMessage.innerHTML = originalMessage;
-					})
-					chatMessageMessage.innerHTML = '';
-					chatMessageMessage.appendChild(deletedMessage);
-				}
-				else
-				{
-					chatMessageMessage.innerHTML = '&lt;message deleted&gt;';
-				}
-			}
-			else
-			{
-				chat.removeChild(node);
-			}
-		}
+		console.log('[hangouts+]: Error handling sounds: ' + exception.message);
 	}
 
-	// Sounds
-	for (var i = 0; i < soundAlerts.length; i++)
+	try
 	{
-		var hasPlayed = false;
-		if (!hasPlayed)
+		// Emoticons
+		if (disableEmoticons)
 		{
-			for (var j = 0; j < chatMessageMessage.childNodes.length; j++)
+			var nodes = chatMessageMessage.getElementsByTagName("*");
+			for (var i = 0; i < nodes.length; i++)
 			{
-				if (chatMessageMessage.childNodes[j].nodeType == 3)
+				var node = nodes[i];
+				var parent = node.parentNode;
+				/* Google handles emoticons in a very straight forward, consistent manner:
+			Emoticons are IMG elements with ALT tags.
+			The ALT tag is always the text that is replaced with the image, so just re-replace it.*/
+				if (node.tagName == 'IMG')
 				{
-					var message = chatMessageMessage.childNodes[j].nodeValue;
-					if (regexMatch(message, soundAlerts[i].pattern))
+					if (node.alt)
 					{
-						var audio = new Audio(soundAlerts[i].url);
-						audio.play();
-						hasPlayed = true;
+						var replacementText = node.alt;
+						var replacementNode = document.createElement('text');
+						replacementNode.innerHTML = replacementText;
+						parent.insertBefore(replacementNode, node);
+						parent.removeChild(node);
 					}
 				}
 			}
 		}
 	}
-
-	// Emoticons
-	if (disableEmoticons)
+	catch (exception)
 	{
-		var nodes = chatMessageMessage.getElementsByTagName("*");
-		for (var i = 0; i < nodes.length; i++)
-		{
-			var node = nodes[i];
-			var parent = node.parentNode;
-			/* Google handles emoticons in a very straight forward, consistent manner:
-			Emoticons are IMG elements with ALT tags.
-			The ALT tag is always the text that is replaced with the image, so just re-replace it.*/
-			if (node.tagName == 'IMG')
-			{
-				if (node.alt)
-				{
-					var replacementText = node.alt;
-					var replacementNode = document.createElement('text');
-					replacementNode.innerHTML = replacementText;
-					parent.insertBefore(replacementNode, node);
-					parent.removeChild(node);
-				}
-			}
-		}
+		console.log('[hangouts+]: Error handling emoticons: ' + exception.message);
 	}
 
 	// Custom emoticons
@@ -1339,11 +1369,7 @@ function previousInputHistory()
 	{
 		inputHistoryIndex++;
 	}
-	if (inputHistoryIndex == -1)
-	{
-		textArea.value = '';
-	}
-	else if (inputHistory.length > 0)
+	else if (inputHistory.length > 0 && inputHistoryIndex > -1)
 	{
 		textArea.value = inputHistory[inputHistoryIndex];
 	}
