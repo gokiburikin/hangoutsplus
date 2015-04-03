@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.10
+// @version     2.11
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -1688,6 +1688,8 @@ function initializeCustomInterfaceElements()
 	emoticonsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/emoticons_icon.png');
 	emojiChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/replacements_icon.png');
 	soundsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/sounds_icon.png');
+    inputBorder = initializeTextInputBorder();
+    logBorder = initializeChatLogBorder();
 
 	emoticonsChatButton.onclick = function ()
 	{
@@ -1910,6 +1912,22 @@ function addCustomChatButton(imageUrl)
 	customButton.appendChild(customButtonDiv);
 	chatButtonContainer.appendChild(customButton);
 	return customButton;
+}
+
+function initializeTextInputBorder()
+{
+    textArea.style.height = '65px';
+    textArea.style.marginTop = '0px';
+    textArea.style.marginBottom = '15px';
+    textArea.style.width = '200px';
+	return textArea;
+}
+
+function initializeChatLogBorder()
+{
+    var logBorder = $('.pq-pA.a-E-Pc.Aq')[0];
+    logBorder.style.bottom = '105px';
+	return logBorder;
 }
 
 function toggleDiv(element, standardDisplay)
