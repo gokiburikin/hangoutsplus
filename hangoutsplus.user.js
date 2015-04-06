@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.11
+// @version     2.12
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -618,12 +618,39 @@ function parseForEmoticons(nodes)
 				var matchIndex = nodeValue.indexOf(emoticon.replacement);
 				if (matchIndex != -1)
 				{
+					console.log("found match");
+					var lengthAdjustment = 0;
+					var modifiers = ["$h", "$v", "$hv", "$vh"];
 					var image = document.createElement('img');
 					image.src = emoticon.url;
 					image.style.width = emoticon.width;
 					image.style.height = emoticon.height;
 					image.title = emoticon.replacement;
 					image.alt = emoticon.replacement;
+					for (var j = 0; j < modifiers.length; j++)
+					{
+						if (nodeValue.indexOf(emoticon.replacement + modifiers[j]) != -1)
+						{
+							switch (modifiers[j])
+							{
+							case "$h":
+								image.style.transform = "scaleX(-1)";
+								break;
+							case "$v":
+								image.style.transform = "scaleY(-1)";
+								break;
+							case "$hv":
+								image.style.transform = "scaleX(-1) scaleY(-1)";
+								break;
+							case "$vh":
+								image.style.transform = "scaleX(-1) scaleY(-1)";
+								break;
+							default:
+								break;
+							}
+							lengthAdjustment = modifiers[j].length;
+						}
+					}
 					image.onload = function ()
 					{
 						if (!fixedScrolling)
@@ -633,7 +660,7 @@ function parseForEmoticons(nodes)
 					}
 
 					var before = document.createTextNode(nodeValue.substr(0, matchIndex));
-					var after = document.createTextNode(nodeValue.substr(matchIndex + emoticon.replacement.length));
+					var after = document.createTextNode(nodeValue.substr(matchIndex + emoticon.replacement.length + lengthAdjustment));
 					node.parentNode.insertBefore(before, node);
 					node.parentNode.insertBefore(image, node);
 					node.parentNode.insertBefore(after, node);
@@ -1516,7 +1543,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.08;
+var scriptVersion = 2.12;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1688,8 +1715,8 @@ function initializeCustomInterfaceElements()
 	emoticonsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/emoticons_icon.png');
 	emojiChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/replacements_icon.png');
 	soundsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/sounds_icon.png');
-    inputBorder = initializeTextInputBorder();
-    logBorder = initializeChatLogBorder();
+	inputBorder = initializeTextInputBorder();
+	logBorder = initializeChatLogBorder();
 
 	emoticonsChatButton.onclick = function ()
 	{
@@ -1916,17 +1943,17 @@ function addCustomChatButton(imageUrl)
 
 function initializeTextInputBorder()
 {
-    textArea.style.height = '65px';
-    textArea.style.marginTop = '0px';
-    textArea.style.marginBottom = '15px';
-    textArea.style.width = '200px';
+	textArea.style.height = '65px';
+	textArea.style.marginTop = '0px';
+	textArea.style.marginBottom = '15px';
+	textArea.style.width = '200px';
 	return textArea;
 }
 
 function initializeChatLogBorder()
 {
-    var logBorder = $('.pq-pA.a-E-Pc.Aq')[0];
-    logBorder.style.bottom = '105px';
+	var logBorder = $('.pq-pA.a-E-Pc.Aq')[0];
+	logBorder.style.bottom = '105px';
 	return logBorder;
 }
 
