@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.13
+// @version     2.14
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -299,9 +299,11 @@ var chatObserver = new MutationObserver(function (mutations)
 		for (var i = 0; i < mutation.addedNodes.length; i++)
 		{
 			var node = mutation.addedNodes[i];
+
 			if (node)
 			{
 				// Kc-we is the message DIV containing everything about an individual user's consecutive messages
+				// If the node is Kc-we, then start tracking observing it for consecutive messages and disconnect the previous observer
 				if (node.classList.contains('Kc-we'))
 				{
 					lastMessageNode = node;
@@ -315,43 +317,9 @@ var chatObserver = new MutationObserver(function (mutations)
 							characterData: true
 						});
 					}
-					var chatMessage = node;
-					if (!node.childNodes[0].childNodes[0].classList.contains('Kc-Ca'))
-					{
-						// Retrieves the container of the users name
-						var chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
-						var chatMessageMessage = chatMessage.childNodes[0].childNodes[1].childNodes[1];
-						if (invertNameColor)
-						{
-							var color = chatMessageSender.style.backgroundColor;
-							chatMessageSender.style.backgroundColor = chatMessageSender.style.color;
-							chatMessageSender.style.color = color;
-
-						}
-						for (var j = 0; j < aliases.length; j++)
-						{
-							// chatMessageSender.childNodes[0] is the user name text node
-							if (aliases[j].user === chatMessageSender.childNodes[0].nodeValue)
-							{
-								chatMessageSender.childNodes[0].nodeValue = aliases[j].replacement;
-							}
-							if (chatMessageMessage.substr(0, 3) === "/me")
-							{
-								var actionSpan = $('<span style="font-weight:initial;">');
-								actionSpan.append(document.createTextNode(chatMessageMessage.substr(2)));
-								chatMessageSender.appendChild(actionSpan[0]);
-							}
-						}
-						// Retrieves the container of the text message
-						// This can contain multiple child text nodes
-						handleNewMessage(node, chatMessageSender.childNodes[0], chatMessageMessage);
-						if (popoutChatWindow != null)
-						{
-							popoutChatAddMessage(chatMessageSender.innerHTML, chatMessageMessage.innerHTML, chatMessageSender.style.color);
-						}
-					}
+					newMessageMutationHandler(node);
 				}
-				if (node.classList.contains('Kc-Nd'))
+				else if (node.classList.contains('Kc-Nd'))
 				{
 					chat.removeChild(node);
 				}
@@ -380,6 +348,87 @@ var lastMessageObserver = new MutationObserver(function (mutations)
 		scrollFix();
 	});
 });
+
+var newMessageMutationHandler = function (chatMessage)
+{
+	var chatMessageSender = null;
+	var chatMessageMessage = null;
+	try
+	{
+		chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
+	}
+	catch (ex)
+	{}
+	try
+	{
+		chatMessageMessage = chatMessage.childNodes[0].childNodes[1].childNodes[1];
+	}
+	catch (ex)
+	{}
+
+	if (!chatMessage.childNodes[0].childNodes[0].classList.contains('Kc-Ca'))
+	{
+		// Retrieves the container of the users name
+		var chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
+		var chatMessageMessage = chatMessage.childNodes[0].childNodes[1].childNodes[1];
+		if (invertNameColor)
+		{
+			var color = chatMessageSender.style.backgroundColor;
+			chatMessageSender.style.backgroundColor = chatMessageSender.style.color;
+			chatMessageSender.style.color = color;
+
+		}
+		for (var j = 0; j < aliases.length; j++)
+		{
+			// chatMessageSender.childNodes[0] is the user name text node
+
+			if (aliases[j].user === chatMessageSender.childNodes[0].nodeValue)
+			{
+				chatMessageSender.childNodes[0].nodeValue = aliases[j].replacement;
+			}
+		}
+	}
+
+	// Retrieves the container of the text message
+	// This can contain multiple child text nodes
+	handleNewMessage(chatMessage, chatMessageSender, chatMessageMessage);
+	if (popoutChatWindow != null && chatMessageSender && chatMessageMessage)
+	{
+		popoutChatAddMessage(chatMessageSender.innerHTML, chatMessageMessage.innerHTML, chatMessageSender.style.color);
+	}
+}
+
+var consecutiveMessageMutationHandler = function (chatMessage)
+{
+	var chatMessageSender = null;
+	var chatMessageMessage = null;
+	try
+	{
+		chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
+	}
+	catch (ex)
+	{}
+	try
+	{
+		chatMessageMessage = chatMessage.childNodes[0].childNodes[1].childNodes[1];
+	}
+	catch (ex)
+	{}
+
+	if (chatMessageMessage && chatMessageMessage.substr(0, 3) === "/me")
+	{
+		var actionSpan = $('<span style="font-weight:initial;">');
+		actionSpan.append(document.createTextNode(chatMessageMessage.substr(2)));
+		chatMessageSender.appendChild(actionSpan[0]);
+	}
+	// Retrieves the container of the text message
+	// This can contain multiple child text nodes
+	handleNewMessage(chatMessage, chatMessageSender, chatMessageMessage);
+	if (popoutChatWindow != null && chatMessageSender && chatMessageMessage)
+	{
+		popoutChatAddMessage(chatMessageSender.innerHTML, chatMessageMessage.innerHTML, chatMessageSender.style.color);
+	}
+}
 
 // If the scroll fix is enabled and the user has scrolled, keep the scroll bar in place
 /* Hangouts always scrolls the chat to the maximum when a new message arrives. This is called after 
@@ -577,7 +626,7 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 	// Custom emoticons
 	// This section should be reworked eventually to not use innerHTML
 	// Might also be missing some cases
-	if (customEmoticons)
+	if (customEmoticons && chatMessageMessage)
 	{
 		parseForEmoticons([removeWordBreaks(chatMessageMessage)]);
 	}
@@ -639,7 +688,6 @@ function parseForEmoticons(nodes)
 				var matchIndex = nodeValue.indexOf(emoticon.replacement);
 				if (matchIndex != -1)
 				{
-					console.log("found match");
 					var lengthAdjustment = 0;
 					var modifiers = ["$h", "$v", "$hv", "$vh"];
 					var image = document.createElement('img');
@@ -1564,7 +1612,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.13;
+var scriptVersion = 2.14;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
