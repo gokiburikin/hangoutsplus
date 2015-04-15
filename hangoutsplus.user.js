@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.14
+// @version     2.16
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -38,6 +38,9 @@ function initializeVariables()
 
 	// User Aliases
 	aliases = [];
+
+	// Disable avatars
+	disableAvatars = true;
 
 	// Word highlighting
 	highlights = [];
@@ -83,6 +86,7 @@ function savePreferences()
 			localStorage.setItem('purgeMode', JSON.stringify(purgeBlacklistedMessages));
 			localStorage.setItem('enableScrollingFix', JSON.stringify(enableScrollingFix));
 			localStorage.setItem('saveInputHistory', JSON.stringify(saveInputHistory));
+			localStorage.setItem('disableAvatars', JSON.stringify(disableAvatars));
 		}
 	}
 	catch (exception)
@@ -111,6 +115,7 @@ function loadPreferences()
 			purgeBlacklistedMessages = tryLoadPreference('purgeMode', purgeBlacklistedMessages);
 			enableScrollingFix = tryLoadPreference('enableScrollingFix', enableScrollingFix);
 			saveInputHistory = tryLoadPreference('saveInputHistory', saveInputHistory);
+			disableAvatars = tryLoadPreference('disableAvatars', disableAvatars);
 			migrate(currentVersion, scriptVersion);
 
 			results = 'Loaded ' + blacklist.length + ' blacklist entries, ';
@@ -147,6 +152,7 @@ function clearPreferences()
 	localStorage.removeItem('purgeMode');
 	localStorage.removeItem('enableScrollingFix');
 	localStorage.removeItem('saveInputHistory');
+	localStorage.removeItem('disableAvatars');
 }
 
 function migrate(currentVersion, scriptVersion)
@@ -296,14 +302,17 @@ var chatObserver = new MutationObserver(function (mutations)
 {
 	mutations.forEach(function (mutation)
 	{
+		// For each mutation to the chat window
 		for (var i = 0; i < mutation.addedNodes.length; i++)
 		{
 			var node = mutation.addedNodes[i];
 
+			// Ensure the mutation has not be nulled
 			if (node)
 			{
 				// Kc-we is the message DIV containing everything about an individual user's consecutive messages
 				// If the node is Kc-we, then start tracking observing it for consecutive messages and disconnect the previous observer
+				// See lastMessageObserver
 				if (node.classList.contains('Kc-we'))
 				{
 					lastMessageNode = node;
@@ -323,6 +332,7 @@ var chatObserver = new MutationObserver(function (mutations)
 				{
 					chat.removeChild(node);
 				}
+
 			}
 		}
 		scrollFix();
@@ -331,7 +341,11 @@ var chatObserver = new MutationObserver(function (mutations)
 
 // The last message mutation observer
 /* This must be used in order to capture and alter messages sent by the same person in succession,
-as the top level mutation observer will not capture changes to its children. */
+as the top level mutation observer will not capture changes to its children.
+
+Mutation edit handling has been separated into two functions.
+
+This function is what is called when a user speaks without being interrupted by another message.*/
 var lastMessageObserver = new MutationObserver(function (mutations)
 {
 	mutations.forEach(function (mutation)
@@ -339,16 +353,15 @@ var lastMessageObserver = new MutationObserver(function (mutations)
 		for (var i = 0; i < mutation.addedNodes.length; i++)
 		{
 			var node = mutation.addedNodes[i];
+			// The handleNewMessage functions contains edits that can be done even if it's not the first time a user speaks
 			handleNewMessage(lastMessageNode, lastMessageNode.childNodes[0].childNodes[1].childNodes[0].childNodes[0].childNodes[0], node);
-			if (popoutChatWindow != null)
-			{
-				popoutChatAddMessage(lastMessageNode.childNodes[0].childNodes[1].childNodes[0].childNodes[0].childNodes[0].nodeValue, node.innerHTML, lastMessageNode.childNodes[0].childNodes[1].childNodes[0].childNodes[0].style.color);
-			}
 		}
 		scrollFix();
 	});
 });
 
+/* This function is what is called when a user speaks for the first time since another user or message type
+has been received. Aliases, name colour, and removal of avatars happens here. */
 var newMessageMutationHandler = function (chatMessage)
 {
 	var chatMessageSender = null;
@@ -365,6 +378,15 @@ var newMessageMutationHandler = function (chatMessage)
 	}
 	catch (ex)
 	{}
+
+	if (disableAvatars)
+	{
+		// chatMessage is Kc-we
+		// chatMessage.firstChild Kc.Oc
+		// chatMessage.firstChild.firstChild is Kc.Va.m
+		// This should remove the entire avatar container, aligning the message to the left
+		chatMessage.firstChild.firstChild.removeChild(0);
+	}
 
 	if (!chatMessage.childNodes[0].childNodes[0].classList.contains('Kc-Ca'))
 	{
@@ -392,10 +414,6 @@ var newMessageMutationHandler = function (chatMessage)
 	// Retrieves the container of the text message
 	// This can contain multiple child text nodes
 	handleNewMessage(chatMessage, chatMessageSender, chatMessageMessage);
-	if (popoutChatWindow != null && chatMessageSender && chatMessageMessage)
-	{
-		popoutChatAddMessage(chatMessageSender.innerHTML, chatMessageMessage.innerHTML, chatMessageSender.style.color);
-	}
 }
 
 var consecutiveMessageMutationHandler = function (chatMessage)
@@ -481,7 +499,12 @@ function regexMatch(text, pattern)
 }
 
 // Handles new messages
-/* This function deals with the actual content of the message. */
+/* This function handles changes that happen on messages regardless of
+if they are the first message sent by the user:
+	Parsing for emoticons
+	Blacklisting
+	Playing sounds
+	Highlighting */
 function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 {
 	// Highlights
@@ -630,6 +653,11 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 	{
 		parseForEmoticons([removeWordBreaks(chatMessageMessage)]);
 	}
+
+	if (popoutChatWindow != null && chatMessageSender && chatMessageMessage)
+	{
+		popoutChatAddMessage(chatMessageSender.innerHTML, chatMessageMessage.innerHTML, chatMessageSender.style.color);
+	}
 }
 
 // Parses the text that is inside the text area for replacements
@@ -686,33 +714,68 @@ function parseForEmoticons(nodes)
 			{
 				var emoticon = customEmoticonData[i];
 				var matchIndex = nodeValue.indexOf(emoticon.replacement);
+				// matchIndex is the index at which the emoticons replacement was found
 				if (matchIndex != -1)
 				{
+					// lengthAdjustment is used to splice the modifier characters out of the message
 					var lengthAdjustment = 0;
-					var modifiers = ["$h", "$v", "$hv", "$vh"];
+					// Array of emoticon modifiers
+					var modifiers = ["$h", "$v", "$t"];
+					// The image element that will be replacing the emoticon text
 					var image = document.createElement('img');
 					image.src = emoticon.url;
 					image.style.width = emoticon.width;
 					image.style.height = emoticon.height;
 					image.title = emoticon.replacement;
 					image.alt = emoticon.replacement;
+
+					var modifiedEmoticonText = emoticon.replacement;
+					var modifiedIndex = matchIndex + emoticon.replacement.length;
+					var searchForModifiers = true;
+					while (searchForModifiers)
+					{
+						for (var j = 0; j < modifiers.length; j++)
+						{
+							if (nodeValue.indexOf(modifiedIndex, modifiers[i].length) === modifiers[i])
+							{
+								lengthAdjustment += modifiers[i].length;
+								activeModifiers += modifiers[i];
+							}
+							else
+							{
+								searchForModifiers = false;
+							}
+						}
+					}
+
 					for (var j = 0; j < modifiers.length; j++)
 					{
+						if (nodeValue.indexOf(modifiers[i]) != -1)
+						{
+							activeModifiers.push(modifiers[i]);
+						}
+					}
+
+					// Modifier variables
+					var scaleX = 1.0;
+					var scaleY = 1.0;
+					for (var j = 0; j < activeModifiers.length; j++)
+					{
+
 						if (nodeValue.indexOf(emoticon.replacement + modifiers[j]) != -1)
 						{
+
 							switch (modifiers[j])
 							{
 							case "$h":
-								image.style.transform = "scaleX(-1)";
+								scaleX *= -1;;
 								break;
 							case "$v":
-								image.style.transform = "scaleY(-1)";
+								scaleY *= -1;
 								break;
-							case "$hv":
-								image.style.transform = "scaleX(-1) scaleY(-1)";
-								break;
-							case "$vh":
-								image.style.transform = "scaleX(-1) scaleY(-1)";
+							case "$t":
+								scaleX *= .5;
+								scaleY *= .5;
 								break;
 							default:
 								break;
@@ -720,6 +783,7 @@ function parseForEmoticons(nodes)
 							lengthAdjustment = modifiers[j].length;
 						}
 					}
+					image.style.transform = "scaleX(" + scaleX + ") scaleY(" + scaleY + ")";
 					image.onload = function ()
 					{
 						if (!fixedScrolling)
@@ -782,6 +846,7 @@ function performCommand(command)
 			'raw message',
 			'alias username @ replacement',
 			'inputhistory [on/off]',
+			'disableavatars [on/off]',
 			'scripturl'
 		];
 		for (var i = 0; i < commands.length; i++)
@@ -1162,12 +1227,12 @@ function performCommand(command)
 		if (command[1] === 'on')
 		{
 			purgeBlacklistedMessages = true;
-			addSystemMessage('[hangouts+]: Purge mode enabled.');
+			addSystemMessage('[hangouts+]: Purge mode now enabled.');
 		}
 		else if (command[1] === 'off')
 		{
 			purgeBlacklistedMessages = false;
-			addSystemMessage('[hangouts+]: Purge mode disabled.');
+			addSystemMessage('[hangouts+]: Purge mode now disabled.');
 		}
 		else
 		{
@@ -1189,12 +1254,12 @@ function performCommand(command)
 		if (command[1] === 'on')
 		{
 			saveInputHistory = true;
-			addSystemMessage('[hangouts+]: Input history enabled.');
+			addSystemMessage('[hangouts+]: Input history now enabled.');
 		}
 		else if (command[1] === 'off')
 		{
 			saveInputHistory = false;
-			addSystemMessage('[hangouts+]: Input history disabled.');
+			addSystemMessage('[hangouts+]: Input history now disabled.');
 		}
 		else
 		{
@@ -1216,12 +1281,12 @@ function performCommand(command)
 		if (command[1] === 'on')
 		{
 			selectiveHearing = true;
-			addSystemMessage('[hangouts+]: Selective hearing enabled.');
+			addSystemMessage('[hangouts+]: Selective hearing now enabled.');
 		}
 		else if (command[1] === 'off')
 		{
 			selectiveHearing = false;
-			addSystemMessage('[hangouts+]: Selective hearing disabled.');
+			addSystemMessage('[hangouts+]: Selective hearing now disabled.');
 		}
 		else
 		{
@@ -1277,21 +1342,23 @@ function performCommand(command)
 	{
 		if (command[1] === 'on')
 		{
-			disableEmoticons = false;
+			disableEmoticons = true;
+			addSystemMessage('[hangouts+]: Emoticons are now disabled.');
 		}
 		else if (command[1] === 'off')
 		{
-			disableEmoticons = true;
+			disableEmoticons = false;
+			addSystemMessage('[hangouts+]: Emoticons are now enabled.');
 		}
 		else
 		{
 			if (disableEmoticons)
 			{
-				addSystemMessage('[hangouts+]: Emoticons are on.');
+				addSystemMessage('[hangouts+]: Emoticons are disabled.');
 			}
 			else
 			{
-				addSystemMessage('[hangouts+]: Emoticons are off.');
+				addSystemMessage('[hangouts+]: Emoticons are enabled.');
 			}
 		}
 	}
@@ -1318,6 +1385,32 @@ function performCommand(command)
 			else
 			{
 				addSystemMessage('[hangouts+]: Scrolling fix is disabled.');
+			}
+		}
+	}
+	// Avatar disabling 
+	/* Handles toggling and viewing status of avatar disabling */
+	else if (command[0] === '!disableavatars')
+	{
+		if (command[1] === 'on')
+		{
+			disableAvatars = true;
+			addSystemMessage('[hangouts+]: Avatars are now disabled.');
+		}
+		else if (command[1] === 'off')
+		{
+			disableAvatars = false;
+			addSystemMessage('[hangouts+]: Avatars are now enabled.');
+		}
+		else
+		{
+			if (disableAvatars)
+			{
+				addSystemMessage('[hangouts+]: Avatars are disabled.');
+			}
+			else
+			{
+				addSystemMessage('[hangouts+]: Avatars are enabled.');
 			}
 		}
 	}
@@ -1597,7 +1690,7 @@ var hangoutObserver = new MutationObserver(function (mutations)
 		});
 		hangoutObserver.disconnect();
 		initializeCustomInterfaceElements();
-		addSystemMessage('[hangouts+]: Plugin initialized. Type !? for a list of commands.');
+		addSystemMessage('[hangouts+]: Plugin initialized. v' + scriptVersion + '. Type !? for a list of commands.');
 	}
 });
 initializeVariables();
@@ -1612,7 +1705,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.14;
+var scriptVersion = 2.16;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1969,6 +2062,7 @@ function addSoundsEntry(sound)
 			soundAlerts.splice(soundAlertIndex, 1);
 			addSystemMessage('[hangouts+]: Removed alert ' + sound.pattern + ' no longer plays ' + sound.url + '.');
 		}
+		savePreferences();
 		this.update();
 	}
 	document.getElementById('soundsTable').appendChild(link);
