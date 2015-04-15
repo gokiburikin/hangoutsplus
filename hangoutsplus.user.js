@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.17
+// @version     2.18
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -367,12 +367,14 @@ var chatObserver = new MutationObserver(function (mutations)
 				}
 				else
 				{
-					if (node.childNodes[0] && node.childNodes[0].childNodes[0])
+					// Kc-Va-m is the avatar container class
+					if (node.childNodes[0] && node.childNodes[0].childNodes[0] && node.childNodes[0].childNodes[0].classList.contains('Kc-Va-m'))
 					{
 						node.avatarContainer = node.childNodes[0].childNodes[0];
 					}
 					if (node.childNodes[0] && node.childNodes[0].childNodes[1])
 					{
+						if (node.childNodes[0].childNodes[1].childNodes[0] && node.childNodes[0].childNodes[1].childNodes[0].childNodes[0])
 						{
 							node.senderContainer = node.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
 						}
@@ -442,30 +444,27 @@ var newMessageMutationHandler = function (node)
 		// This should remove the entire avatar container, aligning the message to the left
 		try
 		{
-			node.childNodes[0].removeChild(node.childNodes[0].childNodes[0]);
+			node.avatarContainer.parentNode.removeChild(node.avatarContainer);
 		}
 		catch (ex)
 		{}
 	}
 
-	if (!node.childNodes[0].childNodes[0].classList.contains('Kc-Ca'))
+	// Retrieves the container of the users name
+	if (invertNameColor)
 	{
-		// Retrieves the container of the users name
-		if (invertNameColor)
-		{
-			var color = node.senderContainer.style.backgroundColor;
-			node.senderContainer.style.backgroundColor = node.senderContainer.style.color;
-			node.senderContainer.style.color = color;
+		var color = node.senderContainer.style.backgroundColor;
+		node.senderContainer.style.backgroundColor = node.senderContainer.style.color;
+		node.senderContainer.style.color = color;
 
-		}
-		for (var j = 0; j < aliases.length; j++)
-		{
-			// node.senderContainer.childNodes[0] is the user name text node
+	}
+	for (var j = 0; j < aliases.length; j++)
+	{
+		// node.senderContainer.childNodes[0] is the user name text node
 
-			if (aliases[j].user === node.messageContainer.childNodes[0].nodeValue)
-			{
-				node.messageContainer.childNodes[0].nodeValue = aliases[j].replacement;
-			}
+		if (aliases[j].user === node.messageContainer.childNodes[0].nodeValue)
+		{
+			node.messageContainer.childNodes[0].nodeValue = aliases[j].replacement;
 		}
 	}
 
@@ -500,7 +499,10 @@ if they are the first message sent by the user:
 	Highlighting */
 function handleNewMessage(node)
 {
-	removeWordBreaks(node.messageContainer);
+	if (node.messageContainer)
+	{
+		removeWordBreaks(node.messageContainer);
+	}
 	// Highlights
 	try
 	{
@@ -539,7 +541,6 @@ function handleNewMessage(node)
 		console.log('[hangouts+]: Error handling highlight: ' + exception.message);
 	}
 
-
 	// Blacklist
 	try
 	{
@@ -549,7 +550,6 @@ function handleNewMessage(node)
 			{
 				if (!purgeBlacklistedMessages)
 				{
-
 					if (selectiveHearing)
 					{
 						var deletedMessage = document.createElement("a");
@@ -611,7 +611,7 @@ function handleNewMessage(node)
 	try
 	{
 		// Emoticons
-		if (disableEmoticons)
+		if (disableEmoticons && node.messageContainer)
 		{
 			var nodes = node.messageContainer.getElementsByTagName("*");
 			for (var i = 0; i < nodes.length; i++)
@@ -648,7 +648,6 @@ function handleNewMessage(node)
 		parseForEmoticons([node]);
 	}
 
-
 	if (popoutChatWindow != null && node.senderContainer && node.messageContainer)
 	{
 		popoutChatAddMessage(node.senderContainer.innerHTML, node.messageContainer.innerHTML, node.senderContainer.style.color);
@@ -658,6 +657,7 @@ function handleNewMessage(node)
 // Parses the text that is inside the text area for replacements
 function parseInputText(text)
 {
+
 	// Replacements
 	var replacementTuples = [];
 	for (var i = 0; i < replacements.length; i++)
@@ -699,106 +699,113 @@ function parseInputText(text)
 // Takes some time when the picture is not in cache
 function parseForEmoticons(nodes)
 {
-	while (nodes.length > 0)
+	try
 	{
-		var node = nodes[0];
-		if (node.nodeType == 3)
+		while (nodes.length > 0)
 		{
-			var nodeValue = node.nodeValue;
-			// Array of emoticon modifiers
-			var modifiers = ["$h", "$v", "$t"];
-			for (var i = 0; i < customEmoticonData.length; i++)
+			var node = nodes[0];
+			if (node.nodeType == 3)
 			{
-				var emoticon = customEmoticonData[i];
-				var matchIndex = nodeValue.indexOf(emoticon.replacement);
-				// matchIndex is the index at which the emoticons replacement was found
-				if (matchIndex != -1)
+				var nodeValue = node.nodeValue;
+				// Array of emoticon modifiers
+				var modifiers = ["$h", "$v", "$t"];
+				for (var i = 0; i < customEmoticonData.length; i++)
 				{
-					// lengthAdjustment is used to splice the modifier characters out of the message
-					var lengthAdjustment = 0;
-
-					// Array of modifiers for this emoticon
-					var activeModifiers = [];
-					// The image element that will be replacing the emoticon text
-					var image = document.createElement('img');
-					image.src = emoticon.url;
-					image.style.width = emoticon.width;
-					image.style.height = emoticon.height;
-					image.title = emoticon.replacement;
-					image.alt = emoticon.replacement;
-
-					var modifiedEmoticonText = emoticon.replacement;
-					var modifiedIndex = matchIndex + emoticon.replacement.length;
-
-					var searchForModifiers = true;
-					while (searchForModifiers)
+					var emoticon = customEmoticonData[i];
+					var matchIndex = nodeValue.indexOf(emoticon.replacement);
+					// matchIndex is the index at which the emoticons replacement was found
+					if (matchIndex != -1)
 					{
-						for (var j = 0; j < modifiers.length; j++)
+						// lengthAdjustment is used to splice the modifier characters out of the message
+						var lengthAdjustment = 0;
+
+						// Array of modifiers for this emoticon
+						var activeModifiers = [];
+						// The image element that will be replacing the emoticon text
+						var image = document.createElement('img');
+						image.src = emoticon.url;
+						image.style.width = emoticon.width;
+						image.style.height = emoticon.height;
+						image.title = emoticon.replacement;
+						image.alt = emoticon.replacement;
+
+						var modifiedEmoticonText = emoticon.replacement;
+						var modifiedIndex = matchIndex + emoticon.replacement.length;
+
+						var searchForModifiers = true;
+						while (searchForModifiers)
 						{
-							if (nodeValue.indexOf(modifiers[j], modifiedIndex) === modifiedIndex)
+							for (var j = 0; j < modifiers.length; j++)
 							{
-								lengthAdjustment += modifiers[j].length;
-								activeModifiers.push(modifiers[j]);
-								modifiedIndex += modifiers[j].length;
-								continue;
+								if (nodeValue.indexOf(modifiers[j], modifiedIndex) === modifiedIndex)
+								{
+									lengthAdjustment += modifiers[j].length;
+									activeModifiers.push(modifiers[j]);
+									modifiedIndex += modifiers[j].length;
+									continue;
+								}
+								if (j == modifiers.length - 1)
+								{
+									searchForModifiers = false;
+								}
 							}
-							if (j == modifiers.length - 1)
+						}
+
+						// Modifier variables
+						var scaleX = 1.0;
+						var scaleY = 1.0;
+						for (var j = 0; j < activeModifiers.length; j++)
+						{
+							switch (activeModifiers[j])
 							{
-								searchForModifiers = false;
+							case "$h":
+								scaleX *= -1;;
+								break;
+							case "$v":
+								scaleY *= -1;
+								break;
+							case "$t":
+								scaleX *= .5;
+								scaleY *= .5;
+								break;
+							default:
+								break;
 							}
 						}
-					}
-
-					// Modifier variables
-					var scaleX = 1.0;
-					var scaleY = 1.0;
-					for (var j = 0; j < activeModifiers.length; j++)
-					{
-						switch (activeModifiers[j])
+						image.style.transform = "scaleX(" + scaleX + ") scaleY(" + scaleY + ")";
+						image.onload = function ()
 						{
-						case "$h":
-							scaleX *= -1;;
-							break;
-						case "$v":
-							scaleY *= -1;
-							break;
-						case "$t":
-							scaleX *= .5;
-							scaleY *= .5;
-							break;
-						default:
-							break;
+							if (!fixedScrolling)
+							{
+								scrollChatToBottom();
+							}
 						}
-					}
-					image.style.transform = "scaleX(" + scaleX + ") scaleY(" + scaleY + ")";
-					image.onload = function ()
-					{
-						if (!fixedScrolling)
-						{
-							scrollChatToBottom();
-						}
-					}
 
-					var before = document.createTextNode(nodeValue.substr(0, matchIndex));
-					var after = document.createTextNode(nodeValue.substr(matchIndex + emoticon.replacement.length + lengthAdjustment));
-					node.parentNode.insertBefore(before, node);
-					node.parentNode.insertBefore(image, node);
-					node.parentNode.insertBefore(after, node);
-					nodes.push(before);
-					nodes.push(after);
-					node.parentNode.removeChild(node);
-					break;
+						var before = document.createTextNode(nodeValue.substr(0, matchIndex));
+						var after = document.createTextNode(nodeValue.substr(matchIndex + emoticon.replacement.length + lengthAdjustment));
+						node.parentNode.insertBefore(before, node);
+						node.parentNode.insertBefore(image, node);
+						node.parentNode.insertBefore(after, node);
+						nodes.push(before);
+						nodes.push(after);
+						node.parentNode.removeChild(node);
+						break;
+					}
 				}
 			}
-		}
-		else
-		{
-			for (var j = 0; j < node.childNodes.length; j++)
+			else
 			{
-				nodes.push(node.childNodes[j]);
+				for (var j = 0; j < node.childNodes.length; j++)
+				{
+					nodes.push(node.childNodes[j]);
+				}
 			}
+			nodes.shift();
 		}
-		nodes.shift();
+	}
+	catch (exception)
+	{
+		console.log('[hangouts+]: Error parsing emoticons: ' + exception.message);
 	}
 }
 
@@ -1692,7 +1699,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.17;
+var scriptVersion = 2.18;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1752,19 +1759,26 @@ var soundsPanel;
 // Method for removing the wbr elements hangouts automatically adds after every 10th character in a word
 function removeWordBreaks(node)
 {
-	for (var i = 0; i < node.childNodes.length; i++)
+	try
 	{
-		var childNode = node.childNodes[i];
-		if (childNode.nodeName === 'WBR')
+		for (var i = 0; i < node.childNodes.length; i++)
 		{
-			if (childNode.previousSibling.nodeType == 3 && childNode.nextSibling.nodeType == 3)
+			var childNode = node.childNodes[i];
+			if (childNode.nodeName === 'WBR')
 			{
-				childNode.previousSibling.nodeValue += childNode.nextSibling.nodeValue;
-				node.removeChild(childNode.nextSibling);
-				i--;
+				if (childNode.previousSibling.nodeType == 3 && childNode.nextSibling.nodeType == 3)
+				{
+					childNode.previousSibling.nodeValue += childNode.nextSibling.nodeValue;
+					node.removeChild(childNode.nextSibling);
+					i--;
+				}
+				node.removeChild(childNode);
 			}
-			node.removeChild(childNode);
 		}
+	}
+	catch (exception)
+	{
+		console.log("[hangouts+]: Error removing word breaks: " + exception.message);
 	}
 	return node;
 }
@@ -1792,6 +1806,7 @@ function loadCustomEmoticonList()
 			{
 				addEmoticonEntry(customEmoticonData[i]);
 			}
+			console.log("loaded custom emoticons");
 			addSystemMessage('[hangouts+]: Loaded ' + customEmoticonData.length + ' custom emoticons.');
 		});
 	}
