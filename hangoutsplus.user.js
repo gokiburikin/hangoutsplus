@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.16
+// @version     2.17
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -118,7 +118,7 @@ function loadPreferences()
 			disableAvatars = tryLoadPreference('disableAvatars', disableAvatars);
 			migrate(currentVersion, scriptVersion);
 
-			results = 'Loaded ' + blacklist.length + ' blacklist entries, ';
+			results = ' Loaded ' + blacklist.length + ' blacklist entries, ';
 			results += highlights.length + ' highlights, ';
 			results += replacements.length + ' replacements, and ';
 			results += soundAlerts.length + ' sound alerts.';
@@ -281,173 +281,6 @@ function addSystemMessage(message)
 	return div;
 }
 
-// The chat mutation observer
-/* This watches for any children added to the main chat area div. Based on what it is, it will parse
-the message to purge, highlight, or play sounds. Blacklisted messages are not added to the chat area when 
-purgemode is enabled. */
-
-// /me notes
-/* The Kc-Ma-m style must:
-	unset white-space: nowrap;
-	unset text-overflow: ellipsis
-	unset overflow: hidden
-
-	The action must be spanned with:
-	font-weight: initial;
-
-	The original message node must be removed and the innerHTML must
-	be copied over to the same DIV as the user's name
-*/
-var chatObserver = new MutationObserver(function (mutations)
-{
-	mutations.forEach(function (mutation)
-	{
-		// For each mutation to the chat window
-		for (var i = 0; i < mutation.addedNodes.length; i++)
-		{
-			var node = mutation.addedNodes[i];
-
-			// Ensure the mutation has not be nulled
-			if (node)
-			{
-				// Kc-we is the message DIV containing everything about an individual user's consecutive messages
-				// If the node is Kc-we, then start tracking observing it for consecutive messages and disconnect the previous observer
-				// See lastMessageObserver
-				if (node.classList.contains('Kc-we'))
-				{
-					lastMessageNode = node;
-					lastMessageObserver.disconnect();
-					if (lastMessageNode && lastMessageNode.firstChild && lastMessageNode.firstChild.childNodes.length > 0 && lastMessageNode.firstChild.childNodes[1])
-					{
-						lastMessageObserver.observe(lastMessageNode.firstChild.childNodes[1],
-						{
-							attributes: true,
-							childList: true,
-							characterData: true
-						});
-					}
-					newMessageMutationHandler(node);
-				}
-				else if (node.classList.contains('Kc-Nd'))
-				{
-					chat.removeChild(node);
-				}
-
-			}
-		}
-		scrollFix();
-	});
-});
-
-// The last message mutation observer
-/* This must be used in order to capture and alter messages sent by the same person in succession,
-as the top level mutation observer will not capture changes to its children.
-
-Mutation edit handling has been separated into two functions.
-
-This function is what is called when a user speaks without being interrupted by another message.*/
-var lastMessageObserver = new MutationObserver(function (mutations)
-{
-	mutations.forEach(function (mutation)
-	{
-		for (var i = 0; i < mutation.addedNodes.length; i++)
-		{
-			var node = mutation.addedNodes[i];
-			// The handleNewMessage functions contains edits that can be done even if it's not the first time a user speaks
-			handleNewMessage(lastMessageNode, lastMessageNode.childNodes[0].childNodes[1].childNodes[0].childNodes[0].childNodes[0], node);
-		}
-		scrollFix();
-	});
-});
-
-/* This function is what is called when a user speaks for the first time since another user or message type
-has been received. Aliases, name colour, and removal of avatars happens here. */
-var newMessageMutationHandler = function (chatMessage)
-{
-	var chatMessageSender = null;
-	var chatMessageMessage = null;
-	try
-	{
-		chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
-	}
-	catch (ex)
-	{}
-	try
-	{
-		chatMessageMessage = chatMessage.childNodes[0].childNodes[1].childNodes[1];
-	}
-	catch (ex)
-	{}
-
-	if (disableAvatars)
-	{
-		// chatMessage is Kc-we
-		// chatMessage.firstChild Kc.Oc
-		// chatMessage.firstChild.firstChild is Kc.Va.m
-		// This should remove the entire avatar container, aligning the message to the left
-		chatMessage.firstChild.firstChild.removeChild(0);
-	}
-
-	if (!chatMessage.childNodes[0].childNodes[0].classList.contains('Kc-Ca'))
-	{
-		// Retrieves the container of the users name
-		var chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
-		var chatMessageMessage = chatMessage.childNodes[0].childNodes[1].childNodes[1];
-		if (invertNameColor)
-		{
-			var color = chatMessageSender.style.backgroundColor;
-			chatMessageSender.style.backgroundColor = chatMessageSender.style.color;
-			chatMessageSender.style.color = color;
-
-		}
-		for (var j = 0; j < aliases.length; j++)
-		{
-			// chatMessageSender.childNodes[0] is the user name text node
-
-			if (aliases[j].user === chatMessageSender.childNodes[0].nodeValue)
-			{
-				chatMessageSender.childNodes[0].nodeValue = aliases[j].replacement;
-			}
-		}
-	}
-
-	// Retrieves the container of the text message
-	// This can contain multiple child text nodes
-	handleNewMessage(chatMessage, chatMessageSender, chatMessageMessage);
-}
-
-var consecutiveMessageMutationHandler = function (chatMessage)
-{
-	var chatMessageSender = null;
-	var chatMessageMessage = null;
-	try
-	{
-		chatMessageSender = chatMessage.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
-	}
-	catch (ex)
-	{}
-	try
-	{
-		chatMessageMessage = chatMessage.childNodes[0].childNodes[1].childNodes[1];
-	}
-	catch (ex)
-	{}
-
-	if (chatMessageMessage && chatMessageMessage.substr(0, 3) === "/me")
-	{
-		var actionSpan = $('<span style="font-weight:initial;">');
-		actionSpan.append(document.createTextNode(chatMessageMessage.substr(2)));
-		chatMessageSender.appendChild(actionSpan[0]);
-	}
-	// Retrieves the container of the text message
-	// This can contain multiple child text nodes
-	handleNewMessage(chatMessage, chatMessageSender, chatMessageMessage);
-	if (popoutChatWindow != null && chatMessageSender && chatMessageMessage)
-	{
-		popoutChatAddMessage(chatMessageSender.innerHTML, chatMessageMessage.innerHTML, chatMessageSender.style.color);
-	}
-}
-
 // If the scroll fix is enabled and the user has scrolled, keep the scroll bar in place
 /* Hangouts always scrolls the chat to the maximum when a new message arrives. This is called after 
 the mutation observer so that after hangouts scrolls to the bottom, this scrolls back up to where it
@@ -498,6 +331,166 @@ function regexMatch(text, pattern)
 	return regex.test(text);
 }
 
+// The chat mutation observer
+/* This watches for any children added to the main chat area div. Based on what it is, it will parse
+the message to purge, highlight, or play sounds. Blacklisted messages are not added to the chat area when 
+purgemode is enabled. */
+
+// /me notes
+/* The Kc-Ma-m style must:
+	unset white-space: nowrap;
+	unset text-overflow: ellipsis
+	unset overflow: hidden
+
+	The action must be spanned with:
+	font-weight: initial;
+
+	The original message node must be removed and the innerHTML must
+	be copied over to the same DIV as the user's name
+*/
+var chatObserver = new MutationObserver(function (mutations)
+{
+	mutations.forEach(function (mutation)
+	{
+		// For each mutation to the chat window
+		for (var i = 0; i < mutation.addedNodes.length; i++)
+		{
+			var node = mutation.addedNodes[i];
+
+			// Ensure the mutation has not be nulled
+			if (node)
+			{
+				// If it's a line break don't bother with the other stuff
+				if (node.classList.contains('Kc-Nd'))
+				{
+					chat.removeChild(node);
+				}
+				else
+				{
+					if (node.childNodes[0] && node.childNodes[0].childNodes[0])
+					{
+						node.avatarContainer = node.childNodes[0].childNodes[0];
+					}
+					if (node.childNodes[0] && node.childNodes[0].childNodes[1])
+					{
+						{
+							node.senderContainer = node.childNodes[0].childNodes[1].childNodes[0].childNodes[0];
+						}
+						if (node.childNodes[0].childNodes[1].childNodes[1])
+						{
+							node.messageContainer = node.childNodes[0].childNodes[1].childNodes[1];
+						}
+					}
+
+					// Kc-we is the message DIV containing everything about an individual user's consecutive messages
+					// If the node is Kc-we, then start tracking observing it for consecutive messages and disconnect the previous observer
+					// See lastMessageObserver
+					if (node.classList.contains('Kc-we'))
+					{
+						lastMessageNode = node;
+						lastMessageObserver.disconnect();
+						if (lastMessageNode && lastMessageNode.firstChild && lastMessageNode.firstChild.childNodes.length > 0 && lastMessageNode.firstChild.childNodes[1])
+						{
+							lastMessageObserver.observe(lastMessageNode.firstChild.childNodes[1],
+							{
+								attributes: true,
+								childList: true,
+								characterData: true
+							});
+						}
+						newMessageMutationHandler(node);
+					}
+				}
+			}
+		}
+		scrollFix();
+	});
+});
+
+// The last message mutation observer
+/* This must be used in order to capture and alter messages sent by the same person in succession,
+as the top level mutation observer will not capture changes to its children.
+
+Mutation edit handling has been separated into two functions.
+
+This function is what is called when a user speaks without being interrupted by another message.*/
+var lastMessageObserver = new MutationObserver(function (mutations)
+{
+	mutations.forEach(function (mutation)
+	{
+		for (var i = 0; i < mutation.addedNodes.length; i++)
+		{
+			var node = mutation.addedNodes[i];
+			// The handleNewMessage functions contains edits that can be done even if it's not the first time a user speaks
+			node.messageContainer = node;
+			node.senderContainer = lastMessageNode.senderContainer;
+			handleNewMessage(node);
+		}
+		scrollFix();
+	});
+});
+
+/* This function is what is called when a user speaks for the first time since another user or message type
+has been received. Aliases, name colour, and removal of avatars happens here. */
+var newMessageMutationHandler = function (node)
+{
+	if (disableAvatars)
+	{
+		// node is Kc-we
+		// node.firstChild Kc.Oc
+		// node.firstChild.firstChild is Kc.Va.m
+		// This should remove the entire avatar container, aligning the message to the left
+		try
+		{
+			node.childNodes[0].removeChild(node.childNodes[0].childNodes[0]);
+		}
+		catch (ex)
+		{}
+	}
+
+	if (!node.childNodes[0].childNodes[0].classList.contains('Kc-Ca'))
+	{
+		// Retrieves the container of the users name
+		if (invertNameColor)
+		{
+			var color = node.senderContainer.style.backgroundColor;
+			node.senderContainer.style.backgroundColor = node.senderContainer.style.color;
+			node.senderContainer.style.color = color;
+
+		}
+		for (var j = 0; j < aliases.length; j++)
+		{
+			// node.senderContainer.childNodes[0] is the user name text node
+
+			if (aliases[j].user === node.messageContainer.childNodes[0].nodeValue)
+			{
+				node.messageContainer.childNodes[0].nodeValue = aliases[j].replacement;
+			}
+		}
+	}
+
+	// Retrieves the container of the text message
+	// This can contain multiple child text nodes
+	handleNewMessage(node);
+}
+
+var consecutiveMessageMutationHandler = function (node)
+{
+	if (node.messageContainer && node.messagecontainer.nodeValue.substr(0, 3) === "/me")
+	{
+		var actionSpan = $('<span style="font-weight:initial;">');
+		actionSpan.append(document.createTextNode(node.messageContainer.substr(2)));
+		node.messageContainer.appendChild(actionSpan[0]);
+	}
+	// Retrieves the container of the text message
+	// This can contain multiple child text nodes
+	handleNewMessage(node);
+	if (popoutChatWindow != null && node.messageContainer && node.messageContainer)
+	{
+		popoutChatAddMessage(node.messageContainer.innerHTML, node.messageContainer.innerHTML, node.messageContainer.style.color);
+	}
+}
+
 // Handles new messages
 /* This function handles changes that happen on messages regardless of
 if they are the first message sent by the user:
@@ -505,8 +498,9 @@ if they are the first message sent by the user:
 	Blacklisting
 	Playing sounds
 	Highlighting */
-function handleNewMessage(node, chatMessageSender, chatMessageMessage)
+function handleNewMessage(node)
 {
+	removeWordBreaks(node.messageContainer);
 	// Highlights
 	try
 	{
@@ -517,14 +511,14 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 			{
 				for (var i = 0; i < highlights.length; i++)
 				{
-					for (var j = 0; j < chatMessageMessage.childNodes.length; j++)
+					for (var j = 0; j < node.messageContainer.childNodes.length; j++)
 					{
-						if (chatMessageMessage.childNodes[j].nodeType == 3)
+						if (node.messageContainer.childNodes[j].nodeType == 3)
 						{
-							var message = chatMessageMessage.childNodes[j].nodeValue;
+							var message = node.messageContainer.childNodes[j].nodeValue;
 							if (regexMatch(message, highlights[i]))
 							{
-								chatMessageMessage.style.backgroundColor = highlightColor;
+								node.messageContainer.style.backgroundColor = highlightColor;
 								var audio = new Audio(highlightSoundFilePath);
 								audio.play();
 								hasPlayed = true;
@@ -551,7 +545,7 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 	{
 		for (var j = 0; j < blacklist.length; j++)
 		{
-			if (blacklist[j].toLowerCase() == chatMessageSender.nodeValue.toLowerCase())
+			if (blacklist[j].toLowerCase() == node.senderContainer.nodeValue.toLowerCase())
 			{
 				if (!purgeBlacklistedMessages)
 				{
@@ -559,18 +553,18 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 					if (selectiveHearing)
 					{
 						var deletedMessage = document.createElement("a");
-						var originalMessage = chatMessageMessage.innerHTML;
+						var originalMessage = node.messageContainer.innerHTML;
 						deletedMessage.innerHTML = '&lt;message deleted&gt';
 						deletedMessage.onclick = (function ()
 						{
 							deletedMessage.innerHTML = originalMessage;
 						})
-						chatMessageMessage.innerHTML = '';
-						chatMessageMessage.appendChild(deletedMessage);
+						node.messageContainer.innerHTML = '';
+						node.messageContainer.appendChild(deletedMessage);
 					}
 					else
 					{
-						chatMessageMessage.innerHTML = '&lt;message deleted&gt;';
+						node.messageContainer.innerHTML = '&lt;message deleted&gt;';
 					}
 				}
 				else
@@ -593,11 +587,11 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 			var hasPlayed = false;
 			if (!hasPlayed)
 			{
-				for (var j = 0; j < chatMessageMessage.childNodes.length; j++)
+				for (var j = 0; j < node.messageContainer.childNodes.length; j++)
 				{
-					if (chatMessageMessage.childNodes[j].nodeType == 3)
+					if (node.messageContainer.childNodes[j].nodeType == 3)
 					{
-						var message = chatMessageMessage.childNodes[j].nodeValue;
+						var message = node.messageContainer.childNodes[j].nodeValue;
 						if (regexMatch(message, soundAlerts[i].pattern))
 						{
 							var audio = new Audio(soundAlerts[i].url);
@@ -619,7 +613,7 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 		// Emoticons
 		if (disableEmoticons)
 		{
-			var nodes = chatMessageMessage.getElementsByTagName("*");
+			var nodes = node.messageContainer.getElementsByTagName("*");
 			for (var i = 0; i < nodes.length; i++)
 			{
 				var node = nodes[i];
@@ -649,14 +643,15 @@ function handleNewMessage(node, chatMessageSender, chatMessageMessage)
 	// Custom emoticons
 	// This section should be reworked eventually to not use innerHTML
 	// Might also be missing some cases
-	if (customEmoticons && chatMessageMessage)
+	if (customEmoticons && node.messageContainer)
 	{
-		parseForEmoticons([removeWordBreaks(chatMessageMessage)]);
+		parseForEmoticons([node]);
 	}
 
-	if (popoutChatWindow != null && chatMessageSender && chatMessageMessage)
+
+	if (popoutChatWindow != null && node.senderContainer && node.messageContainer)
 	{
-		popoutChatAddMessage(chatMessageSender.innerHTML, chatMessageMessage.innerHTML, chatMessageSender.style.color);
+		popoutChatAddMessage(node.senderContainer.innerHTML, node.messageContainer.innerHTML, node.senderContainer.style.color);
 	}
 }
 
@@ -710,6 +705,8 @@ function parseForEmoticons(nodes)
 		if (node.nodeType == 3)
 		{
 			var nodeValue = node.nodeValue;
+			// Array of emoticon modifiers
+			var modifiers = ["$h", "$v", "$t"];
 			for (var i = 0; i < customEmoticonData.length; i++)
 			{
 				var emoticon = customEmoticonData[i];
@@ -719,8 +716,9 @@ function parseForEmoticons(nodes)
 				{
 					// lengthAdjustment is used to splice the modifier characters out of the message
 					var lengthAdjustment = 0;
-					// Array of emoticon modifiers
-					var modifiers = ["$h", "$v", "$t"];
+
+					// Array of modifiers for this emoticon
+					var activeModifiers = [];
 					// The image element that will be replacing the emoticon text
 					var image = document.createElement('img');
 					image.src = emoticon.url;
@@ -731,28 +729,23 @@ function parseForEmoticons(nodes)
 
 					var modifiedEmoticonText = emoticon.replacement;
 					var modifiedIndex = matchIndex + emoticon.replacement.length;
+
 					var searchForModifiers = true;
 					while (searchForModifiers)
 					{
 						for (var j = 0; j < modifiers.length; j++)
 						{
-							if (nodeValue.indexOf(modifiedIndex, modifiers[i].length) === modifiers[i])
+							if (nodeValue.indexOf(modifiers[j], modifiedIndex) === modifiedIndex)
 							{
-								lengthAdjustment += modifiers[i].length;
-								activeModifiers += modifiers[i];
+								lengthAdjustment += modifiers[j].length;
+								activeModifiers.push(modifiers[j]);
+								modifiedIndex += modifiers[j].length;
+								continue;
 							}
-							else
+							if (j == modifiers.length - 1)
 							{
 								searchForModifiers = false;
 							}
-						}
-					}
-
-					for (var j = 0; j < modifiers.length; j++)
-					{
-						if (nodeValue.indexOf(modifiers[i]) != -1)
-						{
-							activeModifiers.push(modifiers[i]);
 						}
 					}
 
@@ -761,26 +754,20 @@ function parseForEmoticons(nodes)
 					var scaleY = 1.0;
 					for (var j = 0; j < activeModifiers.length; j++)
 					{
-
-						if (nodeValue.indexOf(emoticon.replacement + modifiers[j]) != -1)
+						switch (activeModifiers[j])
 						{
-
-							switch (modifiers[j])
-							{
-							case "$h":
-								scaleX *= -1;;
-								break;
-							case "$v":
-								scaleY *= -1;
-								break;
-							case "$t":
-								scaleX *= .5;
-								scaleY *= .5;
-								break;
-							default:
-								break;
-							}
-							lengthAdjustment = modifiers[j].length;
+						case "$h":
+							scaleX *= -1;;
+							break;
+						case "$v":
+							scaleY *= -1;
+							break;
+						case "$t":
+							scaleX *= .5;
+							scaleY *= .5;
+							break;
+						default:
+							break;
 						}
 					}
 					image.style.transform = "scaleX(" + scaleX + ") scaleY(" + scaleY + ")";
@@ -1705,7 +1692,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.16;
+var scriptVersion = 2.17;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
