@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.18
+// @version     2.19
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -40,7 +40,7 @@ function initializeVariables()
 	aliases = [];
 
 	// Disable avatars
-	disableAvatars = true;
+	disableAvatars = false;
 
 	// Word highlighting
 	highlights = [];
@@ -445,6 +445,9 @@ var newMessageMutationHandler = function (node)
 		try
 		{
 			node.avatarContainer.parentNode.removeChild(node.avatarContainer);
+			node.style.borderTop = '1px dashed';
+			node.style.paddingBottom = '4px';
+			node.style.paddingTop = '2px';
 		}
 		catch (ex)
 		{}
@@ -506,7 +509,7 @@ function handleNewMessage(node)
 	// Highlights
 	try
 	{
-		if (highlights.length > 0)
+		if (highlights.length > 0 && node.messageContainer)
 		{
 			var hasPlayed = false;
 			if (!hasPlayed)
@@ -582,21 +585,24 @@ function handleNewMessage(node)
 	try
 	{
 		// Sounds
-		for (var i = 0; i < soundAlerts.length; i++)
+		if (node.messageContainer)
 		{
-			var hasPlayed = false;
-			if (!hasPlayed)
+			for (var i = 0; i < soundAlerts.length; i++)
 			{
-				for (var j = 0; j < node.messageContainer.childNodes.length; j++)
+				var hasPlayed = false;
+				if (!hasPlayed)
 				{
-					if (node.messageContainer.childNodes[j].nodeType == 3)
+					for (var j = 0; j < node.messageContainer.childNodes.length; j++)
 					{
-						var message = node.messageContainer.childNodes[j].nodeValue;
-						if (regexMatch(message, soundAlerts[i].pattern))
+						if (node.messageContainer.childNodes[j].nodeType == 3)
 						{
-							var audio = new Audio(soundAlerts[i].url);
-							audio.play();
-							hasPlayed = true;
+							var message = node.messageContainer.childNodes[j].nodeValue;
+							if (regexMatch(message, soundAlerts[i].pattern))
+							{
+								var audio = new Audio(soundAlerts[i].url);
+								audio.play();
+								hasPlayed = true;
+							}
 						}
 					}
 				}
@@ -613,6 +619,7 @@ function handleNewMessage(node)
 		// Emoticons
 		if (disableEmoticons && node.messageContainer)
 		{
+
 			var nodes = node.messageContainer.getElementsByTagName("*");
 			for (var i = 0; i < nodes.length; i++)
 			{
@@ -1699,7 +1706,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.18;
+var scriptVersion = 2.19;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1806,7 +1813,6 @@ function loadCustomEmoticonList()
 			{
 				addEmoticonEntry(customEmoticonData[i]);
 			}
-			console.log("loaded custom emoticons");
 			addSystemMessage('[hangouts+]: Loaded ' + customEmoticonData.length + ' custom emoticons.');
 		});
 	}
