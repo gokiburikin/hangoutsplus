@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.20
+// @version     2.21
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -477,12 +477,6 @@ var newMessageMutationHandler = function (node)
 
 var consecutiveMessageMutationHandler = function (node)
 {
-	if (node.messageContainer && node.messagecontainer.nodeValue.substr(0, 3) === "/me")
-	{
-		var actionSpan = $('<span style="font-weight:initial;">');
-		actionSpan.append(document.createTextNode(node.messageContainer.substr(2)));
-		node.messageContainer.appendChild(actionSpan[0]);
-	}
 	// Retrieves the container of the text message
 	// This can contain multiple child text nodes
 	handleNewMessage(node);
@@ -622,20 +616,20 @@ function handleNewMessage(node)
 			var nodes = node.messageContainer.getElementsByTagName("*");
 			for (var i = 0; i < nodes.length; i++)
 			{
-				var node = nodes[i];
-				var parent = node.parentNode;
+				var subnode = nodes[i];
+				var parent = subnode.parentNode;
 				/* Google handles emoticons in a very straight forward, consistent manner:
 			Emoticons are IMG elements with ALT tags.
 			The ALT tag is always the text that is replaced with the image, so just re-replace it.*/
-				if (node.tagName == 'IMG')
+				if (subnode.tagName == 'IMG')
 				{
-					if (node.alt)
+					if (subnode.alt)
 					{
-						var replacementText = node.alt;
+						var replacementText = subnode.alt;
 						var replacementNode = document.createElement('text');
 						replacementNode.innerHTML = replacementText;
-						parent.insertBefore(replacementNode, node);
-						parent.removeChild(node);
+						parent.insertBefore(replacementNode, subnode);
+						parent.removeChild(subnode);
 					}
 				}
 			}
@@ -646,10 +640,22 @@ function handleNewMessage(node)
 		console.log('[hangouts+]: Error handling emoticons: ' + exception.message);
 	}
 
+	try
+	{
+		if (node.messageContainer && node.messagecontainer.nodeValue.substr(0, 3) === "/me")
+		{
+			var actionSpan = $('<span style="font-weight:initial;">');
+			actionSpan.append(document.createTextNode(node.messageContainer.substr(2)));
+			node.messageContainer.appendChild(actionSpan[0]);
+		}
+	}
+	catch (ex)
+	{
+
+	}
+
 	// Custom emoticons
-	// This section should be reworked eventually to not use innerHTML
-	// Might also be missing some cases
-	if (customEmoticons && node.messageContainer)
+	if (customEmoticons)
 	{
 		parseForEmoticons([node]);
 	}
@@ -663,7 +669,6 @@ function handleNewMessage(node)
 // Parses the text that is inside the text area for replacements
 function parseInputText(text)
 {
-
 	// Replacements
 	var replacementTuples = [];
 	for (var i = 0; i < replacements.length; i++)
@@ -1705,7 +1710,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.20;
+var scriptVersion = 2.21;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
