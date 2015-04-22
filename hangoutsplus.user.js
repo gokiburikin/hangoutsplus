@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     2.21
+// @version     2.22
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -705,6 +705,25 @@ function parseInputText(text)
 	return text;
 }
 
+var updatingEmoticonList = [];
+var updateEmoticons = function ()
+{
+	for (var i = 0; i < updatingEmoticonList.length; i++)
+	{
+		var image = updatingEmoticonList[i];
+		if (image.transform.shaking != null)
+		{
+			image.transform.translateX = Math.round(Math.random() * image.transform.shaking * 2 - image.transform.shaking);
+			image.transform.translateY = Math.round(Math.random() * image.transform.shaking * 2 - image.transform.shaking);
+		}
+		if (image.transform.rotation != null)
+		{
+			image.transform.rotation += image.transform.rotating;
+		}
+		image.transform.update();
+	}
+}
+
 // This function parses chat message nodes for replacement entries in the customEmoticonData array
 // and restructures the DOM to replace those entries with the matching image
 // Takes some time when the picture is not in cache
@@ -719,7 +738,7 @@ function parseForEmoticons(nodes)
 			{
 				var nodeValue = node.nodeValue;
 				// Array of emoticon modifiers
-				var modifiers = ["$h", "$v", "$t"];
+				var modifiers = ["$h", "$v", "$t", "$r+", "$r-", "$s"];
 				for (var i = 0; i < customEmoticonData.length; i++)
 				{
 					var emoticon = customEmoticonData[i];
@@ -753,6 +772,7 @@ function parseForEmoticons(nodes)
 									lengthAdjustment += modifiers[j].length;
 									activeModifiers.push(modifiers[j]);
 									modifiedIndex += modifiers[j].length;
+									j = 0;
 									continue;
 								}
 								if (j == modifiers.length - 1)
@@ -765,12 +785,13 @@ function parseForEmoticons(nodes)
 						// Modifier variables
 						var scaleX = 1.0;
 						var scaleY = 1.0;
+						image.transform = {};
 						for (var j = 0; j < activeModifiers.length; j++)
 						{
 							switch (activeModifiers[j])
 							{
 							case "$h":
-								scaleX *= -1;;
+								scaleX *= -1;
 								break;
 							case "$v":
 								scaleY *= -1;
@@ -779,11 +800,53 @@ function parseForEmoticons(nodes)
 								scaleX *= .5;
 								scaleY *= .5;
 								break;
+							case "$s":
+								if (image.transform.shaking == null)
+								{
+									image.transform.shaking = 0;
+								}
+								image.transform.shaking++;
+								image.transform.needsUpdating = true;
+								break;
+							case "$r+":
+								if (image.transform.rotating == null)
+								{
+									image.transform.rotating = 0;
+									image.transform.rotation = 0;
+								}
+								image.transform.rotating += 5;
+								image.transform.needsUpdating = true;
+								break;
+							case "$r-":
+								if (image.transform.rotating == null)
+								{
+									image.transform.rotating = 0;
+									image.transform.rotation = 0;
+								}
+								image.transform.rotating -= 5;
+								image.transform.needsUpdating = true;
+								break;
 							default:
 								break;
 							}
 						}
-						image.style.transform = "scaleX(" + scaleX + ") scaleY(" + scaleY + ")";
+						image.transform.scaleX = scaleX;
+						image.transform.scaleY = scaleY;
+						image.transform.update = function ()
+						{
+							image.style.transform = "scaleX(" + image.transform.scaleX + ") ";
+							image.style.transform += "scaleY(" + image.transform.scaleY + ") ";
+							image.style.transform += "translateX(" + image.transform.translateX + "px) ";
+							image.style.transform += "translateY(" + image.transform.translateY + "px) ";
+							image.style.transform += "rotate(" + image.transform.rotation + "deg) ";
+						}
+						if (image.transform.needsUpdating == true)
+						{
+							updatingEmoticonList.push(image);
+						}
+
+						image.transform.update();
+
 						image.onload = function ()
 						{
 							if (!fixedScrolling)
@@ -1710,7 +1773,7 @@ hangoutObserver.observe(document.querySelector('body'),
 // Variable initialization
 
 // Keeps track of the most up to date version of the script
-var scriptVersion = 2.21;
+var scriptVersion = 2.22;
 
 // The version stored in user preferences.
 var currentVersion = 0.00;
@@ -1817,6 +1880,7 @@ function loadCustomEmoticonList()
 			{
 				addEmoticonEntry(customEmoticonData[i]);
 			}
+			setInterval(updateEmoticons, 32);
 			addSystemMessage('[hangouts+]: Loaded ' + customEmoticonData.length + ' custom emoticons.');
 		});
 	}
