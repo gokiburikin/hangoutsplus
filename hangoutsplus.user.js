@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.0
+// @version     3.01
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.0;
+hangoutsPlus.scriptVersion = 3.01;
 
 function initializeVariables()
 {
@@ -711,6 +711,7 @@ var updateEmoticons = function ()
 {
 	for (var i = 0; i < updatingEmoticonList.length; i++)
 	{
+
 		var image = updatingEmoticonList[i];
 		if (image.transform.shaking != null)
 		{
@@ -721,7 +722,11 @@ var updateEmoticons = function ()
 		{
 			image.transform.rotation += image.transform.rotating;
 		}
-		image.transform.update();
+		image.style.transform = "scaleX(" + image.transform.scaleX + ") ";
+		image.style.transform += "scaleY(" + image.transform.scaleY + ") ";
+		image.style.transform += "translateX(" + image.transform.translateX + "px) ";
+		image.style.transform += "translateY(" + image.transform.translateY + "px) ";
+		image.style.transform += "rotate(" + image.transform.rotation + "deg) ";
 	}
 }
 
@@ -754,6 +759,7 @@ function parseForEmoticons(nodes)
 						var activeModifiers = [];
 						// The image element that will be replacing the emoticon text
 						var image = document.createElement('img');
+						console.log(image);
 						image.src = emoticon.url;
 						image.style.width = emoticon.width;
 						image.style.height = emoticon.height;
@@ -844,20 +850,16 @@ function parseForEmoticons(nodes)
 						}
 						image.transform.scaleX = scaleX;
 						image.transform.scaleY = scaleY;
-						image.transform.update = function ()
-						{
-							image.style.transform = "scaleX(" + image.transform.scaleX + ") ";
-							image.style.transform += "scaleY(" + image.transform.scaleY + ") ";
-							image.style.transform += "translateX(" + image.transform.translateX + "px) ";
-							image.style.transform += "translateY(" + image.transform.translateY + "px) ";
-							image.style.transform += "rotate(" + image.transform.rotation + "deg) ";
-						}
 						if (image.transform.needsUpdating == true)
 						{
 							updatingEmoticonList.push(image);
 						}
 
-						image.transform.update();
+						image.style.transform = "scaleX(" + image.transform.scaleX + ") ";
+						image.style.transform += "scaleY(" + image.transform.scaleY + ") ";
+						image.style.transform += "translateX(" + image.transform.translateX + "px) ";
+						image.style.transform += "translateY(" + image.transform.translateY + "px) ";
+						image.style.transform += "rotate(" + image.transform.rotation + "deg) ";
 
 						image.onload = function ()
 						{
@@ -924,7 +926,8 @@ function performCommand(command)
 			'scripturl',
 			'scrollfix [on/off]',
 			'unblock user',
-			'unhighlight regExp'
+			'unhighlight regExp',
+			'modifiers'
 		];
 		for (var i = 0; i < commands.length; i++)
 		{
@@ -1521,6 +1524,17 @@ function performCommand(command)
 			hangoutsPlus.chat.innerHTML = '';
 			addSystemMessage('[hangouts+]: Chat has been cleared.');
 		}
+	}
+	// Blacklist selective hearing command
+	else if (command[0] === '!modifiers')
+	{
+		addSystemMessage("[hangouts+]: $h : Horizontal Flip");
+		addSystemMessage("[hangouts+]: $v : Vertical Flip");
+		addSystemMessage("[hangouts+]: $s+ : Scale 1.25x");
+		addSystemMessage("[hangouts+]: $s- : Scale 0.75x");
+		addSystemMessage("[hangouts+]: $r+ : Rotation Speed +1");
+		addSystemMessage("[hangouts+]: $r- : Rotation Speed -1");
+		addSystemMessage("[hangouts+]: $t : Tremble +1");
 	}
 	// Reset all the preferences back to factory defaults
 
