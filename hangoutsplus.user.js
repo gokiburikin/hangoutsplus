@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.04
+// @version     3.05
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.04;
+hangoutsPlus.scriptVersion = 3.05;
 
 function initializeVariables()
 {
@@ -271,6 +271,14 @@ function newChatLineBreak()
 	return chatLineBreak;
 }
 
+// Returns a new element that replicates the hangouts chat line break
+function newHiddenChatBreak()
+{
+	var chatLineBreak = document.createElement('hr');
+	chatLineBreak.style.display = "none";
+	return chatLineBreak;
+}
+
 // Returns a new element that replicates the hangouts system message
 function newChatLineSystemMessage(message)
 {
@@ -500,6 +508,24 @@ if they are the first message sent by the user:
 	Highlighting */
 function handleNewMessage(node)
 {
+	try
+	{
+		if (node.messageContainer != null && node.messageContainer.innerHTML.substr(0, 3) === "/me")
+		{
+			var actionSpan = document.createElement("span");
+			actionSpan.style.fontWeight = "initial";
+			actionSpan.innerHTML = node.messageContainer.innerHTML.substr(4);
+			node.messageContainer.innerHTML = node.senderContainer.firstChild.nodeValue + "&nbsp;";
+			node.messageContainer.style.fontWeight = "bold";
+			node.messageContainer.style.color = node.senderContainer.style.color;
+			node.messageContainer.appendChild(actionSpan);
+		}
+	}
+	catch (ex)
+	{
+
+	}
+
 	if (node.messageContainer)
 	{
 		removeWordBreaks(node.messageContainer);
@@ -643,20 +669,6 @@ function handleNewMessage(node)
 	catch (exception)
 	{
 		console.log('[hangouts+]: Error handling emoticons: ' + exception.message);
-	}
-
-	try
-	{
-		if (node.messageContainer && node.messagecontainer.nodeValue.substr(0, 3) === "/me")
-		{
-			var actionSpan = $('<span style="font-weight:initial;">');
-			actionSpan.append(document.createTextNode(node.messageContainer.substr(2)));
-			node.messageContainer.appendChild(actionSpan[0]);
-		}
-	}
-	catch (ex)
-	{
-
 	}
 
 	// Custom emoticons
