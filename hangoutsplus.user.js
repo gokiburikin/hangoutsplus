@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.02
+// @version     3.03
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.02;
+hangoutsPlus.scriptVersion = 3.03;
 
 function initializeVariables()
 {
@@ -847,11 +847,29 @@ function parseForEmoticons(nodes)
 								break;
 							}
 						}
+						if (scaleX > 4)
+						{
+							scaleX = 4;
+						}
+						if (scaleY > 4)
+						{
+							scaleY = 4;
+						}
 						image.transform.scaleX = scaleX;
 						image.transform.scaleY = scaleY;
 						if (image.transform.needsUpdating == true)
 						{
 							updatingEmoticonList.push(image);
+						}
+
+						image.onclick = function ()
+						{
+							this.style.transform = "initial";
+							if (updatingEmoticonList.indexOf(this) != -1)
+							{
+								updatingEmoticonList.splice(updatingEmoticonList.indexOf(this), 1);
+							}
+							this.onclick = null;
 						}
 
 						image.style.transform = "scaleX(" + image.transform.scaleX + ") ";
@@ -1527,6 +1545,7 @@ function performCommand(command)
 	// Blacklist selective hearing command
 	else if (command[0] === '!modifiers')
 	{
+		addSystemMessage("[hangouts+]: Usage : {emote}$h$s+$r+$t$t");
 		addSystemMessage("[hangouts+]: $h : Horizontal Flip");
 		addSystemMessage("[hangouts+]: $v : Vertical Flip");
 		addSystemMessage("[hangouts+]: $s+ : Scale 1.25x");
