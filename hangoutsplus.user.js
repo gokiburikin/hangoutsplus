@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.06
+// @version     3.07
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.06;
+hangoutsPlus.scriptVersion = 3.07;
 
 function initializeVariables()
 {
@@ -835,6 +835,10 @@ function parseForEmoticons(nodes)
 									image.transform.shaking = 0;
 								}
 								image.transform.shaking++;
+								if (image.transform.shaking > 16)
+								{
+									image.transform.shaking = 16;
+								}
 								image.transform.needsUpdating = true;
 								break;
 							case "$r+":
@@ -1861,7 +1865,7 @@ window when the same user posts multiple messages before another user or system 
 hangoutsPlus.lastMessageNode;
 
 // The amount of distance between the bottom of the scrollbar and the scroll position that can be assumed at the bottom
-hangoutsPlus.scrollAtBottomThreshold = 12;
+hangoutsPlus.scrollAtBottomThreshold = 20;
 
 // Input history
 hangoutsPlus.saveInputHistory = true;
