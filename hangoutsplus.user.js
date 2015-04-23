@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.03
+// @version     3.04
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.03;
+hangoutsPlus.scriptVersion = 3.04;
 
 function initializeVariables()
 {
@@ -1765,7 +1765,7 @@ var hangoutObserver = new MutationObserver(function (mutations)
 
 		if (hangoutsPlus.autoDisableMic && !hangoutsPlus.autoDisableMicInit)
 		{
-			var micButton = $(".c-N-K.a-b.a-b-G.Ha-ha-Sb-b.IQ");
+			var micButton = $(".c-N-K.a-b.a-b-G.Ha-ha-Sb-b.IQ[aria-pressed=\"false\"]");
 			if (micButton.length > 0)
 			{
 				simulateClick(micButton[0]);
@@ -1775,7 +1775,7 @@ var hangoutObserver = new MutationObserver(function (mutations)
 
 		if (hangoutsPlus.autoDisableCam && !hangoutsPlus.autoDisableCamInit)
 		{
-			var camButton = $(".c-N-K.a-b.a-b-G.Ha-ha-Sb-b.OQ");
+			var camButton = $(".c-N-K.a-b.a-b-G.Ha-ha-Sb-b.OQ[aria-pressed=\"false\"]");
 			if (camButton.length > 0)
 			{
 				simulateClick(camButton[0]);
