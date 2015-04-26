@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.09
+// @version     3.10
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.09;
+hangoutsPlus.scriptVersion = 3.10;
 
 function initializeVariables()
 {
@@ -747,26 +747,28 @@ var updateEmoticons = function ()
 		{
 			image.transform.translateX += image.transform.velocityX;
 		}
+		var xMin = -200;
+		var xMax = 400;
 		if (image.transform.wrap)
 		{
-			if (image.transform.translateX < -200)
+			if (image.transform.translateX < xMin)
 			{
-				image.transform.translateX = 450;
+				image.transform.translateX = xMax;
 			}
-			else if (image.transform.translateX > 450)
+			else if (image.transform.translateX > xMax)
 			{
-				image.transform.translateX = -200;
+				image.transform.translateX = xMin;
 			}
 		}
 		else
 		{
-			if (image.transform.translateX < -200)
+			if (image.transform.translateX < xMin)
 			{
-				image.transform.translateX = -200;
+				image.transform.translateX = xMin;
 			}
-			else if (image.transform.translateX > 450)
+			else if (image.transform.translateX > xMax)
 			{
-				image.transform.translateX = 450;
+				image.transform.translateX = xMax;
 			}
 		}
 		updateImage(image);
@@ -848,6 +850,9 @@ function parseForEmoticons(nodes)
 								}
 							}
 						}
+
+						image.alt = nodeValue.substr(matchIndex, modifiedIndex - matchIndex);
+						image.title = nodeValue.substr(matchIndex, modifiedIndex - matchIndex);
 
 						// Modifier variables
 						image.transform = {};
@@ -1618,6 +1623,9 @@ function performCommand(command)
 		addSystemMessage("[hangouts+]: $r- : Rotation Speed -1");
 		addSystemMessage("[hangouts+]: $t : Tremble +1");
 		addSystemMessage("[hangouts+]: $d : Dance!");
+		addSystemMessage("[hangouts+]: $x- : X Velocity -1");
+		addSystemMessage("[hangouts+]: $x+ : X Velocity +1");
+		addSystemMessage("[hangouts+]: $w : Screen Wrap");
 	}
 	// Reset all the preferences back to factory defaults
 
