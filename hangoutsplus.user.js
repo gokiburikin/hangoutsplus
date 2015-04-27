@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.11
+// @version     3.12
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.11;
+hangoutsPlus.scriptVersion = 3.12;
 
 function initializeVariables()
 {
@@ -750,8 +750,17 @@ var updateEmoticons = function ()
 			{
 				image.transform.translateX += image.transform.velocityX;
 			}
-			var xMin = -image.clientWidth * image.transform.scaleX;
-			var xMax = hangoutsPlus.chat.clientWidth + image.clientWidth * image.transform.scaleX;
+			// 6 pixels of padding on the sides
+			var xMin = -image.clientWidth / Math.abs(image.transform.scaleX) - 6;
+			var xMax = hangoutsPlus.chat.clientWidth + image.clientWidth / Math.abs(image.transform.scaleX) - image.clientWidth + 6;
+			if (image.transform.scaleX < 0)
+			{
+				xMin *= -1;
+				xMax *= -1;
+				var temp = xMin;
+				xMin = xMax;
+				xMax = temp;
+			}
 
 			if (image.transform.wrap)
 			{
