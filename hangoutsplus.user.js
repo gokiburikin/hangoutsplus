@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.10
+// @version     3.11
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.10;
+hangoutsPlus.scriptVersion = 3.11;
 
 function initializeVariables()
 {
@@ -725,53 +725,58 @@ var updateEmoticons = function ()
 	{
 
 		var image = updatingEmoticonList[i];
-		image.transform.offsetX = 0;
-		image.transform.offsetY = 0;
-		if (image.transform.shaking != null)
+		var bounds = image.getBoundingClientRect();
+		if (bounds.top < window.innerHeight && bounds.bottom > 0)
 		{
-			image.transform.offsetX = Math.round(Math.random() * image.transform.shaking * 2 - image.transform.shaking);
-			image.transform.offsetY = Math.round(Math.random() * image.transform.shaking * 2 - image.transform.shaking);
-		}
-		if (image.transform.rotating != null)
-		{
-			image.transform.rotation += image.transform.rotating;
-		}
-		if (image.transform.dance != null)
-		{
-			image.transform.danceFrame += image.transform.dance;
-			image.transform.offsetX += Math.cos(image.transform.danceFrame / 20 + Math.PI) * 12;
-			image.transform.offsetY += Math.sin(image.transform.danceFrame / 10) * 3;
-			image.transform.rotation += Math.cos(image.transform.danceFrame / 20 + Math.PI) / 3 * image.transform.dance;
-		}
-		if (image.transform.velocityX)
-		{
-			image.transform.translateX += image.transform.velocityX;
-		}
-		var xMin = -200;
-		var xMax = 400;
-		if (image.transform.wrap)
-		{
-			if (image.transform.translateX < xMin)
+			image.transform.offsetX = 0;
+			image.transform.offsetY = 0;
+			if (image.transform.shaking != 0)
 			{
-				image.transform.translateX = xMax;
+				image.transform.offsetX = Math.round(Math.random() * image.transform.shaking * 2 - image.transform.shaking);
+				image.transform.offsetY = Math.round(Math.random() * image.transform.shaking * 2 - image.transform.shaking);
 			}
-			else if (image.transform.translateX > xMax)
+			if (image.transform.rotating != 0)
 			{
-				image.transform.translateX = xMin;
+				image.transform.rotation += image.transform.rotating;
 			}
+			if (image.transform.dance != 0)
+			{
+				image.transform.danceFrame += image.transform.dance;
+				image.transform.offsetX += Math.cos(image.transform.danceFrame / 20 + Math.PI) * 12;
+				image.transform.offsetY += Math.sin(image.transform.danceFrame / 10) * 3;
+				image.transform.rotation += Math.cos(image.transform.danceFrame / 20 + Math.PI) / 3 * image.transform.dance;
+			}
+			if (image.transform.velocityX)
+			{
+				image.transform.translateX += image.transform.velocityX;
+			}
+			var xMin = -image.clientWidth * image.transform.scaleX;
+			var xMax = hangoutsPlus.chat.clientWidth + image.clientWidth * image.transform.scaleX;
+
+			if (image.transform.wrap)
+			{
+				if (image.transform.translateX < xMin)
+				{
+					image.transform.translateX = xMax;
+				}
+				else if (image.transform.translateX > xMax)
+				{
+					image.transform.translateX = xMin;
+				}
+			}
+			else
+			{
+				if (image.transform.translateX < xMin)
+				{
+					image.transform.translateX = xMin;
+				}
+				else if (image.transform.translateX > xMax)
+				{
+					image.transform.translateX = xMax;
+				}
+			}
+			updateImage(image);
 		}
-		else
-		{
-			if (image.transform.translateX < xMin)
-			{
-				image.transform.translateX = xMin;
-			}
-			else if (image.transform.translateX > xMax)
-			{
-				image.transform.translateX = xMax;
-			}
-		}
-		updateImage(image);
 	}
 	setTimeout(updateEmoticons, 32);
 
@@ -935,6 +940,8 @@ function parseForEmoticons(nodes)
 							updatingEmoticonList.push(image);
 						}
 
+						updateImage(image);
+
 						image.onclick = function ()
 						{
 							this.style.transform = "initial";
@@ -945,7 +952,6 @@ function parseForEmoticons(nodes)
 							this.onclick = null;
 						}
 
-						updateImage(image);
 
 						image.onload = function ()
 						{
