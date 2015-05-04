@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.13
+// @version     3.14
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.13;
+hangoutsPlus.scriptVersion = 3.14;
 
 function initializeVariables()
 {
@@ -542,17 +542,23 @@ function handleNewMessage(node)
 				{
 					for (var j = 0; j < node.messageContainer.childNodes.length; j++)
 					{
+						var message = "";
+
 						if (node.messageContainer.childNodes[j].nodeType == 3)
 						{
-							var message = node.messageContainer.childNodes[j].nodeValue;
-							if (regexMatch(message, hangoutsPlus.highlights[i]))
-							{
-								node.messageContainer.style.backgroundColor = hangoutsPlus.highlightColor;
-								var audio = new Audio(hangoutsPlus.highlightSoundFilePath);
-								audio.play();
-								hasPlayed = true;
-								break;
-							}
+							message = node.messageContainer.childNodes[j].nodeValue;
+						}
+						else
+						{
+							message = node.messageContainer.childNodes[j].innerHTML;
+						}
+						if (regexMatch(message, hangoutsPlus.highlights[i]))
+						{
+							node.messageContainer.style.backgroundColor = hangoutsPlus.highlightColor;
+							var audio = new Audio(hangoutsPlus.highlightSoundFilePath);
+							audio.play();
+							hasPlayed = true;
+							break;
 						}
 					}
 					if (hasPlayed)
