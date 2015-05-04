@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.14
+// @version     3.15
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.14;
+hangoutsPlus.scriptVersion = 3.15;
 
 function initializeVariables()
 {
@@ -481,10 +481,18 @@ var newMessageMutationHandler = function (node)
 	for (var j = 0; j < hangoutsPlus.aliases.length; j++)
 	{
 		// node.senderContainer.childNodes[0] is the user name text node
-		if (hangoutsPlus.aliases[j].user === node.senderContainer.childNodes[0].nodeValue)
+		try
 		{
-			node.senderContainer.childNodes[0].nodeValue = hangoutsPlus.aliases[j].replacement;
+			if (node.senderContainer && node.senderContainer.childNodes[0] != null)
+			{
+				if (hangoutsPlus.aliases[j].user === node.senderContainer.childNodes[0].nodeValue)
+				{
+					node.senderContainer.childNodes[0].nodeValue = hangoutsPlus.aliases[j].replacement;
+				}
+			}
 		}
+		catch (ex)
+		{}
 	}
 
 	// Retrieves the container of the text message
@@ -900,8 +908,8 @@ function parseForEmoticons(nodes)
 								image.transform.scaleY *= -1;
 								break;
 							case "$s-":
-								image.transform.scaleX *= .25;
-								image.transform.scaleY *= .25;
+								image.transform.scaleX *= .75;
+								image.transform.scaleY *= .75;
 								break;
 							case "$s+":
 								image.transform.scaleX *= 1.25;
