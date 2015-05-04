@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.12
+// @version     3.13
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.12;
+hangoutsPlus.scriptVersion = 3.13;
 
 function initializeVariables()
 {
@@ -1998,6 +1998,12 @@ function loadCustomEmoticonList()
 				emoticonTable.removeChild(emoticonTable.childNodes[0]);
 			}
 			hangoutsPlus.customEmoticonData = JSON.parse(data);
+			hangoutsPlus.customEmoticonData.sort(function (a, b)
+			{
+				if (a.tag < b.tag) return -1;
+				if (a.tag > b.tag) return 1;
+				return 0;
+			});
 			for (var i = 0; i < hangoutsPlus.customEmoticonData.length; i++)
 			{
 				addEmoticonEntry(hangoutsPlus.customEmoticonData[i]);
@@ -2141,12 +2147,12 @@ function initializeEmoticonsPanel()
 	var panel = document.createElement('div');
 	panel.id = 'emoticonTable';
 	panel.style.width = '500px';
-	panel.style.height = '300px';
+	panel.style.height = '400px';
 	panel.style.position = 'fixed';
 	panel.style.right = '60px';
 	panel.style.bottom = '20px';
 	panel.style.marginLeft = '-500px';
-	panel.style.marginTop = '-300px';
+	panel.style.marginTop = '-400px';
 	panel.style.backgroundColor = '#fff';
 	panel.style.zIndex = '9001';
 	panel.style.border = '1px solid #666';
@@ -2182,12 +2188,12 @@ function initializeEmojiPanel()
 	var panel = document.createElement('div');
 	panel.id = 'emojiTable';
 	panel.style.width = '500px';
-	panel.style.height = '300px';
+	panel.style.height = '400px';
 	panel.style.position = 'fixed';
 	panel.style.right = '40px';
 	panel.style.bottom = '20px';
 	panel.style.marginLeft = '-500px';
-	panel.style.marginTop = '-300px';
+	panel.style.marginTop = '-400px';
 	panel.style.backgroundColor = '#fff';
 	panel.style.zIndex = '9001';
 	panel.style.border = '1px solid #666';
@@ -2268,12 +2274,12 @@ function initializeSoundsPanel()
 	var panel = document.createElement('div');
 	panel.id = 'soundsTable';
 	panel.style.width = '500px';
-	panel.style.height = '300px';
+	panel.style.height = '400px';
 	panel.style.position = 'fixed';
 	panel.style.right = '20px';
 	panel.style.bottom = '20px';
 	panel.style.marginLeft = '-500px';
-	panel.style.marginTop = '-300px';
+	panel.style.marginTop = '-400px';
 	panel.style.backgroundColor = '#fff';
 	panel.style.zIndex = '9001';
 	panel.style.border = '1px solid #666';
