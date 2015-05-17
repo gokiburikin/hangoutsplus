@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.15
+// @version     3.16
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.15;
+hangoutsPlus.scriptVersion = 3.16;
 
 function initializeVariables()
 {
@@ -72,6 +72,10 @@ function initializeVariables()
 
 	hangoutsPlus.autoDisableMic = true;
 	hangoutsPlus.autoDisableCam = true;
+
+	hangoutsPlus.emoticonHeatmap = {
+		"$total": 0
+	};
 }
 
 // * Do not edit below this line * //
@@ -98,12 +102,24 @@ function savePreferences()
 			localStorage.setItem('avatars', JSON.stringify(hangoutsPlus.avatars));
 			localStorage.setItem('autoDisableMic', JSON.stringify(hangoutsPlus.autoDisableMic));
 			localStorage.setItem('autoDisableCam', JSON.stringify(hangoutsPlus.autoDisableCam));
+			localStorage.setItem('emoticonHeatmap', JSON.stringify(hangoutsPlus.emoticonHeatmap));
 		}
 	}
 	catch (exception)
 	{
 		console.log("[hangouts+]: Failed to save preferences.");
 	}
+}
+
+// Attempt to find and parse a user preference. If it fails, use the default value.
+function tryLoadPreference(preference, defaultValue)
+{
+	var output = defaultValue;
+	if (localStorage.getItem(preference))
+	{
+		output = JSON.parse(localStorage.getItem(preference));
+	}
+	return output;
 }
 
 // Loads the preferences from local storage, if they exist
@@ -130,6 +146,7 @@ function loadPreferences()
 			hangoutsPlus.emoticons = tryLoadPreference('emoticons', hangoutsPlus.emoticons);
 			hangoutsPlus.autoDisableCam = tryLoadPreference('autoDisableCam', hangoutsPlus.autoDisableCam);
 			hangoutsPlus.autoDisableMic = tryLoadPreference('autoDisableMic', hangoutsPlus.autoDisableMic);
+			hangoutsPlus.emoticonHeatmap = tryLoadPreference('emoticonHeatmap', hangoutsPlus.emoticonHeatmap);
 			//migrate(hangoutsPlus.currentVersion, hangoutsPlus.scriptVersion);
 
 			results = ' Loaded ' + hangoutsPlus.chatBlacklist.length + ' blacklist entries, ';
@@ -233,17 +250,6 @@ function migrate(currentVersion, scriptVersion)
 	{
 		addSystemMessage('[hangouts+]: No migration.');
 	}
-}
-
-// Attempt to find and parse a user preference. If it fails, use the default value.
-function tryLoadPreference(preference, defaultValue)
-{
-	var output = defaultValue;
-	if (localStorage.getItem(preference))
-	{
-		output = JSON.parse(localStorage.getItem(preference));
-	}
-	return output;
 }
 
 // Test if localstorage is available
@@ -729,6 +735,31 @@ function parseInputText(text)
 		}
 	}
 
+	for (var i = 0; i < hangoutsPlus.customEmoticonData.length; i++)
+	{
+		var changed = false;
+		var emoticon = hangoutsPlus.customEmoticonData[i];
+		if (text.indexOf(emoticon.replacement) != -1)
+		{
+			if (hangoutsPlus.emoticonHeatmap[emoticon.replacement] == null)
+			{
+				hangoutsPlus.emoticonHeatmap[emoticon.replacement] = 0;
+			}
+			hangoutsPlus.emoticonHeatmap[emoticon.replacement]++;
+
+			if (hangoutsPlus.emoticonHeatmap["$total"] == null)
+			{
+				hangoutsPlus.emoticonHeatmap["$total"] = 0;
+			}
+			hangoutsPlus.emoticonHeatmap["$total"]++;
+			changed = true;
+		}
+		if (changed)
+		{
+			localStorage.setItem('emoticonHeatmap', JSON.stringify(hangoutsPlus.emoticonHeatmap));
+		}
+	}
+
 	return text;
 }
 
@@ -1037,6 +1068,7 @@ function performCommand(command)
 			'refreshemoticons',
 			'replace regExp [replacement]',
 			'replacements [clear]',
+			'resetHeatmap',
 			'selective [on/off]',
 			'scripturl',
 			'scrollfix [on/off]',
@@ -1663,6 +1695,13 @@ function performCommand(command)
 	{
 		hangoutsPlus.textArea.value = 'https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js';
 	}
+	else if (command[0] === '!resetHeatmap')
+	{
+		hangoutsPlus.emoticonHeatmap = {
+			"$total": 0
+		};
+		addSystemMessage('[hangouts+]: Reset heatmap.');
+	}
 	// The command didn't exist
 	else
 	{
@@ -2100,6 +2139,7 @@ function initializeCustomInterfaceElements()
 	hangoutsPlus.emoticonsChatButton.onclick = function ()
 	{
 		toggleDiv(hangoutsPlus.emoticonsPanel, 'block');
+		applyEmoticonHeatmap();
 	}
 	hangoutsPlus.emojiChatButton.onclick = function ()
 	{
@@ -2135,11 +2175,30 @@ function initializeCustomInterfaceElements()
 	});
 }
 
+function applyEmoticonHeatmap()
+{
+	var children = document.getElementById('emoticonTable').childNodes;
+	if (hangoutsPlus.emoticonHeatmap["$total"] != null)
+	{
+		for (var i = 0; i < children.length; i++)
+		{
+			var image = children[i].firstChild;
+			if (hangoutsPlus.emoticonHeatmap[image.title] != null)
+			{
+				var percentage = hangoutsPlus.emoticonHeatmap[image.title] / hangoutsPlus.emoticonHeatmap["$total"];
+				image.style.backgroundColor = "rgba(255,0,0," + percentage + ")";
+			}
+		}
+	}
+}
+
 function addEmoticonEntry(emote)
 {
 	var container = document.createElement('div');
 	var image = document.createElement('img');
 	image.src = emote.url;
+	image.alt = emote.replacement;
+	image.title = emote.replacement;
 	image.style.maxWidth = '50px';
 	image.style.maxHeight = '50px';
 	image.style.cursor = 'pointer';
