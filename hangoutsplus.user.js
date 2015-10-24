@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.17
+// @version     3.18
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.17;
+hangoutsPlus.scriptVersion = 3.18;
 
 function initializeVariables()
 {
@@ -46,6 +46,9 @@ function initializeVariables()
 
 	// Enable avatars
 	hangoutsPlus.avatars = true;
+
+	// Override google name colouring
+	hangoutsPlus.overrideNameColors = true;
 
 	// Word highlighting
 	hangoutsPlus.highlights = [];
@@ -103,6 +106,7 @@ function savePreferences()
 			localStorage.setItem('autoDisableMic', JSON.stringify(hangoutsPlus.autoDisableMic));
 			localStorage.setItem('autoDisableCam', JSON.stringify(hangoutsPlus.autoDisableCam));
 			localStorage.setItem('emoticonHeatmap', JSON.stringify(hangoutsPlus.emoticonHeatmap));
+			localStorage.setItem('overrideNameColors', JSON.stringify(hangoutsPlus.overrideNameColors));
 		}
 	}
 	catch (exception)
@@ -147,6 +151,7 @@ function loadPreferences()
 			hangoutsPlus.autoDisableCam = tryLoadPreference('autoDisableCam', hangoutsPlus.autoDisableCam);
 			hangoutsPlus.autoDisableMic = tryLoadPreference('autoDisableMic', hangoutsPlus.autoDisableMic);
 			hangoutsPlus.emoticonHeatmap = tryLoadPreference('emoticonHeatmap', hangoutsPlus.emoticonHeatmap);
+			hangoutsPlus.overrideNameColors = tryLoadPreference('overrideNameColors', hangoutsPlus.overrideNameColors);
 			//migrate(hangoutsPlus.currentVersion, hangoutsPlus.scriptVersion);
 
 			results = ' Loaded ' + hangoutsPlus.chatBlacklist.length + ' blacklist entries, ';
@@ -477,12 +482,32 @@ var newMessageMutationHandler = function (node)
 	}
 
 	// Retrieves the container of the users name
+	if (hangoutsPlus.overrideNameColors)
+	{
+		function stringToHex(string)
+		{
+			var base = seedInput.value * 0xAFBCDE;
+			var stringValue = 50;
+			for (var c in string)
+			{
+				stringValue += string[c].charCodeAt(0);
+			}
+
+			stringValue = Math.floor(stringValue % 0xFFFFFF);
+			var final = ((stringValue * base) % 0xBBBBBB).toString(16);
+			while (final.length < 6)
+			{
+				final += "0";
+			}
+			return final;
+		}
+		node.senderContainer.style.color = "#" + stringToHex(node.senderContainer.childNodes[0].nodeValue);
+	}
 	if (hangoutsPlus.invertNameColor)
 	{
 		var color = node.senderContainer.style.backgroundColor;
 		node.senderContainer.style.backgroundColor = node.senderContainer.style.color;
 		node.senderContainer.style.color = color;
-
 	}
 	for (var j = 0; j < hangoutsPlus.aliases.length; j++)
 	{
@@ -1057,6 +1082,7 @@ function performCommand(command)
 			'blacklist [clear]',
 			'block user',
 			'clear',
+			'coloroverride [on/off]',
 			'emoticons [on/off]',
 			'highlight regExp',
 			'highlights [clear]',
@@ -1534,6 +1560,16 @@ function performCommand(command)
 			"Avatars are now disabled.",
 			"Avatars are enabled.",
 			"Avatars are disabled."
+		]);
+	}
+	// Colour override disabling 
+	else if (command[0] === '!coloroverride')
+	{
+		simpleToggleCommand(command, "overrideNameColors", [
+			"Colour override is now enabled.",
+			"Colour override is now disabled.",
+			"Colour override is enabled.",
+			"Colour override is disabled."
 		]);
 	}
 	// Auto Disable Mic Handling
