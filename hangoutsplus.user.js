@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.18
+// @version     3.19
 // @grant       none
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
@@ -18,7 +18,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.18;
+hangoutsPlus.scriptVersion = 3.19;
 
 function initializeVariables()
 {
@@ -486,7 +486,7 @@ var newMessageMutationHandler = function (node)
 	{
 		function stringToHex(string)
 		{
-			var base = seedInput.value * 0xAFBCDE;
+			var base = 50 * 0xAFBCDE;
 			var stringValue = 50;
 			for (var c in string)
 			{
