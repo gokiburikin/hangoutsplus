@@ -15,15 +15,14 @@ html
 #emoticonManager
 {
   background-color: #FFF;
-  border: 1px solid #66F;
   position: fixed;
-  right: 60px;
-  bottom: 20px;
-  margin-left: -500px;
-  margin-top: -400px;  
+  right: 225px;
+  bottom: 0px;
   display: none;
   z-index: 9001;
-  width: 600px;
+  width: 800px;
+  height: 600px;
+  resize: both;
 }
 
 .tabHeader
@@ -33,17 +32,17 @@ html
   height: 20px;
   margin: 0;
   background-color: #66F;
-  border-bottom: 1px solid #66F;
-  box-sizing: border-box;
   line-height: 20px;
   vertical-align: top;
   overflow: hidden;
+  position: relative;
+  top: -20px;
 }
 
 .tabHeaderButton, .tabButton
 {
   position: relative;
-  width: 12px;
+  width: 14px;
   height: 20px;
   display: inline-block;
   background-color: none;
@@ -58,7 +57,7 @@ html
 
 .tabButton
 {
-  width: 20px;
+  width: 16px;
   float: right;
   font-size: 14px;
 }
@@ -142,9 +141,11 @@ html
 {
   background-color: #FFF;
   overflow-y: auto;
-  height: 380px;
+  height: 100%;
   width: 100%;
   z-index: 0;
+  position: relative;
+  top: -20px;
 }
 
 .emoticonEntry

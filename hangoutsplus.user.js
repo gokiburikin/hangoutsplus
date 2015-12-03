@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.26
+// @version     3.27
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @resource 	style2 https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/style.css
@@ -23,7 +23,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.26;
+hangoutsPlus.scriptVersion = 3.27;
 
 function initializeVariables()
 {
@@ -86,6 +86,7 @@ function initializeVariables()
 	};
 
 	hangoutsPlus.emoticonSaveInfo = {};
+	hangoutsPlus.emoticonSaveInfo.thumbnailIndex = 1;
 }
 
 // * Do not edit below this line * //
@@ -161,7 +162,6 @@ function loadPreferences()
 			hangoutsPlus.emoticonHeatmap = tryLoadPreference('emoticonHeatmap', hangoutsPlus.emoticonHeatmap);
 			hangoutsPlus.overrideNameColors = tryLoadPreference('overrideNameColors', hangoutsPlus.overrideNameColors);
 			hangoutsPlus.emoticonSaveInfo = tryLoadPreference('emoticonSaveInfo', hangoutsPlus.emoticonSaveInfo);
-			console.log(hangoutsPlus.emoticonSaveInfo);
 			//migrate(hangoutsPlus.currentVersion, hangoutsPlus.scriptVersion);
 
 			results = ' Loaded ' + hangoutsPlus.chatBlacklist.length + ' blacklist entries, ';
@@ -519,11 +519,13 @@ function createTabButton(className, value, title, clickFunction)
 function createFontIcon(className, value)
 {
 	var element = document.createElement("i");
-	element.className = className;
 	if (value != null)
 	{
+		element = document.createElement("span");
 		element.appendChild(document.createTextNode(value));
 	}
+	element.className = className;
+
 	return element;
 }
 
@@ -591,6 +593,8 @@ function createEmoticonEntry(replacement)
 
 	var element = document.createElement("div");
 	element.className = "emoticonEntry";
+	element.style.width = hangoutsPlus.thumbnailSizes[hangoutsPlus.emoticonSaveInfo.thumbnailIndex] + "px";
+	element.style.height = hangoutsPlus.thumbnailSizes[hangoutsPlus.emoticonSaveInfo.thumbnailIndex] + "px";
 
 	var controls = document.createElement("div");
 	controls.className = "emoticonControls";
@@ -2401,6 +2405,9 @@ hangoutsPlus.lastMessageNode;
 // The amount of distance between the bottom of the scrollbar and the scroll position that can be assumed at the bottom
 hangoutsPlus.scrollAtBottomThreshold = 20;
 
+hangoutsPlus.thumbnailSizes = [50, 75, 100, 125, 150];
+hangoutsPlus.scrollAtBottomThreshold = 20;
+
 // Input history
 hangoutsPlus.saveInputHistory = true;
 hangoutsPlus.inputHistory = [];
@@ -2552,6 +2559,33 @@ function initializeCustomInterfaceElements()
 	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-plus", "+", "Add Tab", function (event)
 	{
 		addTab("Tab " + emoticonManager.tabs.length)
+	}).element);
+	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-plus", "▴", "Increase Thumbnail Size", function (event)
+	{
+		hangoutsPlus.emoticonSaveInfo.thumbnailIndex++;
+		if (hangoutsPlus.emoticonSaveInfo.thumbnailIndex >= hangoutsPlus.thumbnailSizes.length)
+		{
+			hangoutsPlus.emoticonSaveInfo.thumbnailIndex = hangoutsPlus.thumbnailSizes.length - 1;
+		}
+		else
+		{
+			savePreferences();
+			loadCustomEmoticonList();
+		}
+
+	}).element);
+	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-plus", "▾", "Decrease Thumbnail Size", function (event)
+	{
+		hangoutsPlus.emoticonSaveInfo.thumbnailIndex--;
+		if (hangoutsPlus.emoticonSaveInfo.thumbnailIndex < 0)
+		{
+			hangoutsPlus.emoticonSaveInfo.thumbnailIndex = 0;
+		}
+		else
+		{
+			savePreferences();
+			loadCustomEmoticonList();
+		}
 	}).element);
 
 	if (hangoutsPlus.emoticonSaveInfo != null && hangoutsPlus.emoticonSaveInfo.tabs != null && hangoutsPlus.emoticonSaveInfo.tabs.length > 0)
