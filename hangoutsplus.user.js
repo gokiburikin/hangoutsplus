@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.23
+// @version     3.25
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @resource 	style2 https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/style.css
@@ -23,7 +23,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.23;
+hangoutsPlus.scriptVersion = 3.25;
 
 function initializeVariables()
 {
@@ -371,7 +371,16 @@ function removeTab(index)
 		emoticonManager.tabs[emoticonManager.activeIndex].toggle();
 		for (var i = index; i < emoticonManager.tabs.length; i++)
 		{
-			emoticonManager.tabs[i].index--;
+			var tab = emoticonManager.tabs[i];
+			for (var k = 0; k < tab.page.entries.length; k++)
+			{
+				var entry = tab.page.entries[k];
+				if (hangoutsPlus.emoticonSaveInfo.emoticons[entry.replacement])
+				{
+					hangoutsPlus.emoticonSaveInfo.emoticons[entry.replacement].tab--;
+				}
+			}
+			tab.index--;
 		}
 		savePreferences();
 	}
@@ -474,6 +483,7 @@ function createTab(text)
 
 	tab.clearEntries = function ()
 	{
+		tab.page.clearEntries();
 		while (tab.page.element.childNodes.length > 0)
 		{
 			tab.page.element.removeChild(tab.page.element.childNodes[0]);
@@ -559,6 +569,11 @@ function createTabPage(index)
 		}
 	}
 
+	page.clearEntries = function ()
+	{
+		page.entries = [];
+	}
+
 	return page;
 }
 
@@ -608,6 +623,7 @@ function createEmoticonEntry(replacement)
 	element.onclick = function ()
 	{
 		hangoutsPlus.textArea.value += entry.replacement;
+		toggleDiv(emoticonManager.element, 'block');
 	}
 
 	entry.toggleSelection = function ()
