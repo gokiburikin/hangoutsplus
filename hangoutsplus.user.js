@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.28
+// @version     3.29
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @resource 	style2 https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/style.css
@@ -23,7 +23,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.28;
+hangoutsPlus.scriptVersion = 3.29;
 
 function initializeVariables()
 {
@@ -628,6 +628,7 @@ function createEmoticonEntry(replacement)
 	{
 		hangoutsPlus.textArea.value += entry.replacement;
 		toggleDiv(emoticonManager.element, 'block');
+		hangoutsPlus.textArea.focus();
 	}
 
 	entry.toggleSelection = function ()
@@ -740,18 +741,6 @@ function regexMatch(text, pattern)
 the message to purge, highlight, or play sounds. Blacklisted messages are not added to the chat area when 
 purgemode is enabled. */
 
-// /me notes
-/* The Kc-Ma-m style must:
-	unset white-space: nowrap;
-	unset text-overflow: ellipsis
-	unset overflow: hidden
-
-	The action must be spanned with:
-	font-weight: initial;
-
-	The original message node must be removed and the innerHTML must
-	be copied over to the same DIV as the user's name
-*/
 var chatObserver = new MutationObserver(function (mutations)
 {
 	mutations.forEach(function (mutation)
@@ -1762,15 +1751,6 @@ function performCommand(command)
 				hangoutsPlus.highlights = [];
 				addSystemMessage('[hangouts+]: Highlight patterns cleared.');
 			}
-			// Deprecated
-			/*else if (command[1] === 'trim')
-			{
-				for (var i = 0; i < highlightMatchPatterns.length; i++)
-				{
-					highlightMatchPatterns[i] = highlightMatchPatterns[i].trim();
-				}
-				addSystemMessage('[hangouts+]: Highlight patterns trimmed.');
-			}*/
 			else
 			{
 				var highlightPatterns = '';
@@ -2474,6 +2454,7 @@ function loadCustomEmoticonList()
 				return 0;
 			});
 			emoticonManager.clearEmoticons();
+			emoticonManager.selectedEmoticons = {};
 			for (var i = 0; i < hangoutsPlus.customEmoticonData.length; i++)
 			{
 				var emoticon = hangoutsPlus.customEmoticonData[i];
@@ -2653,29 +2634,6 @@ function applyEmoticonHeatmap()
 		}
 	}
 }
-
-/*function addEmoticonEntry(emote)
-{
-	var container = document.createElement('div');
-	var image = document.createElement('img');
-	image.src = emote.url;
-	image.alt = emote.replacement;
-	image.title = emote.replacement;
-	image.style.maxWidth = '50px';
-	image.style.maxHeight = '50px';
-	image.style.cursor = 'pointer';
-	image.style.margin = '2px';
-	image.style.padding = '2px';
-	image.onclick = function ()
-	{
-		hangoutsPlus.textArea.value += emote.replacement;
-		toggleDiv(hangoutsPlus.emoticonsPanel, 'block');
-		hangoutsPlus.textArea.focus();
-	}
-	container.appendChild(image);
-	container.style.display = 'inline';
-	document.getElementById('emoticonTable').appendChild(container);
-}*/
 
 function initializeEmoticonsPanel()
 {
