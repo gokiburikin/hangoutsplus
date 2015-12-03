@@ -2595,7 +2595,7 @@ function initializeCustomInterfaceElements()
 
 	$(document).on('click', function (event)
 	{
-		if ($(event.target).closest(hangoutsPlus.textArea).length)
+		if (!$(event.target).closest(emoticonManager.element).length && !$(event.target).closest(hangoutsPlus.emoticonsChatButton).length)
 		{
 			emoticonManager.element.style.display = 'none';
 		}
