@@ -2453,8 +2453,8 @@ function loadCustomEmoticonList()
 	{
 		$.get(listUrl, null, function (data)
 		{
-			var emoticons = JSON.parse(data);
-			emoticons.sort(function (a, b)
+			hangoutsPlus.customEmoticonData = JSON.parse(data);
+			hangoutsPlus.customEmoticonData.sort(function (a, b)
 			{
 				var left = hangoutsPlus.emoticonHeatmap[a.replacement];
 				var right = hangoutsPlus.emoticonHeatmap[b.replacement];
@@ -2467,9 +2467,9 @@ function loadCustomEmoticonList()
 				return 0;
 			});
 			emoticonManager.clearEmoticons();
-			for (var i = 0; i < emoticons.length; i++)
+			for (var i = 0; i < hangoutsPlus.customEmoticonData.length; i++)
 			{
-				var emoticon = emoticons[i];
+				var emoticon = hangoutsPlus.customEmoticonData[i];
 				emoticonManager.addEmoticon(emoticon.url, emoticon.replacement, emoticon.tag);
 			}
 		});
