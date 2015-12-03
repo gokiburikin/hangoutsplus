@@ -3,13 +3,18 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.21
-// @grant       none
+// @version     3.22
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
+// @resource 	style2 https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/style.css
 // @downloadURL https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js
+// @grant		GM_addStyle
+// @grant		GM_getResourceText
 // ==/UserScript==
 // TODO: Just run the command when clicking sound buttons
+
+var newCSS = GM_getResourceText("style2");
+GM_addStyle(newCSS);
 
 // User preferences
 /* Most of these settings are meant to be edited using the commands while in google hangouts.
@@ -18,7 +23,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.21;
+hangoutsPlus.scriptVersion = 3.22;
 
 function initializeVariables()
 {
@@ -79,6 +84,8 @@ function initializeVariables()
 	hangoutsPlus.emoticonHeatmap = {
 		"$total": 0
 	};
+
+	hangoutsPlus.emoticonSaveInfo = {};
 }
 
 // * Do not edit below this line * //
@@ -106,6 +113,7 @@ function savePreferences()
 			localStorage.setItem('autoDisableMic', JSON.stringify(hangoutsPlus.autoDisableMic));
 			localStorage.setItem('autoDisableCam', JSON.stringify(hangoutsPlus.autoDisableCam));
 			localStorage.setItem('emoticonHeatmap', JSON.stringify(hangoutsPlus.emoticonHeatmap));
+			localStorage.setItem('emoticonSaveInfo', JSON.stringify(hangoutsPlus.emoticonSaveInfo));
 			localStorage.setItem('overrideNameColors', JSON.stringify(hangoutsPlus.overrideNameColors));
 		}
 	}
@@ -152,6 +160,8 @@ function loadPreferences()
 			hangoutsPlus.autoDisableMic = tryLoadPreference('autoDisableMic', hangoutsPlus.autoDisableMic);
 			hangoutsPlus.emoticonHeatmap = tryLoadPreference('emoticonHeatmap', hangoutsPlus.emoticonHeatmap);
 			hangoutsPlus.overrideNameColors = tryLoadPreference('overrideNameColors', hangoutsPlus.overrideNameColors);
+			hangoutsPlus.emoticonSaveInfo = tryLoadPreference('emoticonSaveInfo', hangoutsPlus.emoticonSaveInfo);
+			console.log(hangoutsPlus.emoticonSaveInfo);
 			//migrate(hangoutsPlus.currentVersion, hangoutsPlus.scriptVersion);
 
 			results = ' Loaded ' + hangoutsPlus.chatBlacklist.length + ' blacklist entries, ';
@@ -272,6 +282,350 @@ function localStorageTest()
 	{
 		return false;
 	}
+}
+
+// 3.22 Changes
+
+var emoticonManager = {};
+emoticonManager.tabs = [];
+emoticonManager.activeIndex = -1;
+emoticonManager.element = initializeEmoticonsPanel();
+emoticonManager.emoticons = {};
+emoticonManager.selectedEmoticons = {};
+emoticonManager.fallbackTab = null;
+
+emoticonManager.addEmoticon = function (url, replacement)
+{
+	var emoticon = {};
+	emoticon.url = url;
+	emoticon.replacement = replacement;
+	emoticonManager.emoticons[replacement] = emoticon;
+	var shouldFallback = true;
+	if (hangoutsPlus.emoticonSaveInfo.emoticons && hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement] != null)
+	{
+		if (emoticonManager.tabs.length > hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab)
+		{
+			var page = getTab(hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab).page;
+			page.addEmoticonEntry(emoticon.replacement);
+			shouldFallback = false;
+		}
+	}
+	if (shouldFallback)
+	{
+		if (emoticonManager.fallbackTab == null)
+		{
+			emoticonManager.fallbackTab = addTab("Unorganized");
+			if (emoticonManager.tabs.length == 1)
+			{
+				emoticonManager.fallbackTab.toggle();
+				emoticonManager.activeIndex = 0;
+			}
+		}
+		emoticonManager.fallbackTab.page.addEmoticonEntry(emoticon.replacement);
+	}
+}
+
+emoticonManager.clearEmoticons = function ()
+{
+	for (var i = 0; i < emoticonManager.tabs.length; i++)
+	{
+		emoticonManager.tabs[i].clearEntries();
+	}
+}
+
+emoticonManager.getEmoticon = function (replacement)
+{
+	return emoticonManager.emoticons[replacement];
+}
+
+function getTab(index)
+{
+	return emoticonManager.tabs[index];
+}
+
+function addTab(name)
+{
+	var tab = createTab(name);
+	$("#emoticonManager .tabHeader")[0].appendChild(tab.header);
+	emoticonManager.element.appendChild(tab.page.element);
+	emoticonManager.tabs.push(tab);
+	if (!hangoutsPlus.emoticonSaveInfo.tabs)
+	{
+		hangoutsPlus.emoticonSaveInfo.tabs = [];
+	}
+	hangoutsPlus.emoticonSaveInfo.tabs[emoticonManager.tabs.length - 1] = name;
+	savePreferences();
+	return tab;
+}
+
+function removeTab(index)
+{
+	if (emoticonManager.tabs.length > index)
+	{
+		var tab = emoticonManager.tabs[index];
+		$("#emoticonManager .tabHeader")[0].removeChild(tab.header);
+		emoticonManager.element.removeChild(tab.page.element);
+		emoticonManager.tabs.splice(index, 1);
+		emoticonManager.activeIndex--;
+		emoticonManager.tabs[emoticonManager.activeIndex].toggle();
+		for (var i = index; i < emoticonManager.tabs.length; i++)
+		{
+			emoticonManager.tabs[i].index--;
+		}
+	}
+}
+
+function createTab(text)
+{
+	var tab = {};
+	tab.alias = text;
+	tab.active = false;
+	tab.page = createTabPage(emoticonManager.tabs.length);
+	tab.page.element.style.display = "none";
+	tab.index = emoticonManager.tabs.length;
+
+	var header = document.createElement("div");
+	header.className = "tab";
+	var headerSpan = document.createElement("div");
+	headerSpan.className = "tabAlias";
+	headerSpan.appendChild(document.createTextNode(tab.alias));
+	header.appendChild(headerSpan);
+	header.onclick = function ()
+	{
+		if (emoticonManager.activeIndex != tab.index)
+		{
+			if (getTab(emoticonManager.activeIndex) != null)
+			{
+				getTab(emoticonManager.activeIndex).toggle();
+			}
+			tab.toggle();
+			emoticonManager.activeIndex = tab.index;
+		}
+	}
+
+	var addHeaderButton = function (iconClassName, value, title, clickFunction)
+	{
+		var button = document.createElement("div");
+		button.className = "tabHeaderButton activeOnly";
+		button.title = title;
+		button.onclick = clickFunction;
+		button.appendChild(createFontIcon(iconClassName, value));
+		header.appendChild(button);
+		return button;
+	}
+
+	addHeaderButton("fa fa-level-down", "V", "Move selected emoticons to this page",
+		function (event)
+		{
+			for (var key in emoticonManager.selectedEmoticons)
+			{
+				for (var i = 0; i < emoticonManager.tabs.length; i++)
+				{
+					var tab2 = emoticonManager.tabs[i];
+					tab2.page.removeEmoticonEntry(key);
+				}
+				tab.page.addEmoticonEntry(key);
+			}
+			emoticonManager.selectedEmoticons = {};
+			savePreferences();
+			event.stopPropagation();
+		});
+
+	addHeaderButton("fa fa-tag", "R", "Rename this page to the contents of the input area",
+		function (event)
+		{
+			var str = hangoutsPlus.textArea.value.trim();
+			if (str.length > 0)
+			{
+				tab.rename(str);
+			}
+			savePreferences();
+			event.stopPropagation();
+		});
+
+	addHeaderButton("fa fa-close", "X", "Delete this page (only when empty)",
+		function (event)
+		{
+			if (tab.page.entries.length == 0)
+			{
+				removeTab(tab.index);
+			}
+			event.stopPropagation();
+		});
+
+	tab.header = header;
+
+	tab.toggle = function ()
+	{
+		if (tab.active)
+		{
+			tab.header.className = "tab inactive";
+			tab.page.element.style.display = "none";
+		}
+		else
+		{
+			tab.header.className = "tab active";
+			tab.page.element.style.display = "block";
+		}
+		tab.active = !tab.active;
+	}
+
+	tab.clearEntries = function ()
+	{
+		while (tab.page.element.childNodes.length > 0)
+		{
+			tab.page.element.removeChild(tab.page.element.childNodes[0]);
+		}
+	}
+
+	tab.rename = function (text)
+	{
+		tab.alias = text;
+		if (!hangoutsPlus.emoticonSaveInfo.tabs)
+		{
+			hangoutsPlus.emoticonSaveInfo.tabs = [];
+		}
+		hangoutsPlus.emoticonSaveInfo.tabs[tab.index] = text;
+		headerSpan.childNodes[0].nodeValue = text;
+	}
+
+	return tab;
+}
+
+function createTabButton(className, value, title, clickFunction)
+{
+	var button = {};
+	var element = document.createElement("div");
+	button.element = element;
+	element.className = "tabButton"
+	element.appendChild(createFontIcon(className, value));
+	element.title = title;
+	element.onclick = clickFunction;
+	return button;
+}
+
+function createFontIcon(className, value)
+{
+	var element = document.createElement("i");
+	element.className = className;
+	if (value != null)
+	{
+		element.appendChild(document.createTextNode(value));
+	}
+	return element;
+}
+
+function createTabPage(index)
+{
+	var page = {};
+	page.entries = [];
+	var element = document.createElement("div");
+	page.element = element;
+	page.index = index;
+	element.className = "tabPage";
+	element.id = "tabPage_" + index;
+
+	page.addEmoticonEntry = function (replacement)
+	{
+		var entry = createEmoticonEntry(replacement);
+		if (entry != null)
+		{
+			page.entries.push(entry);
+			element.appendChild(entry.element);
+			if (!hangoutsPlus.emoticonSaveInfo.emoticons)
+			{
+				hangoutsPlus.emoticonSaveInfo.emoticons = {};
+			}
+			if (!hangoutsPlus.emoticonSaveInfo.emoticons[replacement])
+			{
+				hangoutsPlus.emoticonSaveInfo.emoticons[replacement] = {};
+			}
+			hangoutsPlus.emoticonSaveInfo.emoticons[replacement].tab = index;
+		}
+	}
+
+	page.removeEmoticonEntry = function (replacement)
+	{
+		for (var i = 0; i < page.entries.length; i++)
+		{
+			var entry = page.entries[i];
+			if (entry.replacement == replacement)
+			{
+				element.removeChild(entry.element);
+				page.entries.splice(i, 1);
+			}
+		}
+	}
+
+	return page;
+}
+
+function createEmoticonEntry(replacement)
+{
+	if (emoticonManager.getEmoticon(replacement) == null)
+	{
+		console.log("missing emoticon requested: " + replacement);
+		return;
+	}
+
+	var entry = {};
+	entry.selected = false;
+	entry.replacement = replacement;
+
+	var element = document.createElement("div");
+	element.className = "emoticonEntry";
+
+	var controls = document.createElement("div");
+	controls.className = "emoticonControls";
+
+	var favoriteButton = document.createElement("div");
+	favoriteButton.className = "emoticonControlsButton";
+
+	favoriteButton.appendChild(createFontIcon("fa fa-star", "S"));
+
+	var toggleButton = document.createElement("div");
+	toggleButton.className = "emoticonControlsButton";
+	toggleButton.onclick = function (event)
+	{
+		entry.toggleSelection();
+		event.stopPropagation();
+	}
+
+	toggleButton.appendChild(createFontIcon("fa fa-check", "C"));
+
+	//controls.appendChild(favoriteButton);
+	controls.appendChild(toggleButton);
+	element.appendChild(controls);
+
+	var image = document.createElement("img");
+	image.className = "emoticonEntryImage";
+	image.src = emoticonManager.getEmoticon(replacement).url;
+	element.title = emoticonManager.getEmoticon(replacement).replacement;
+	element.appendChild(image);
+
+	element.onclick = function ()
+	{
+		hangoutsPlus.textArea.value += entry.replacement;
+	}
+
+	entry.toggleSelection = function ()
+	{
+		if (entry.selected)
+		{
+			element.className = "emoticonEntry";
+			emoticonManager.selectedEmoticons[entry.replacement] = null;
+		}
+		else
+		{
+			element.className = "emoticonEntry selected";
+			emoticonManager.selectedEmoticons[entry.replacement] = true;
+		}
+		entry.selected = !entry.selected;
+
+	}
+
+	entry.element = element;
+	return entry;
 }
 
 // Returns a new element that replicates the hangouts chat line break
@@ -2079,15 +2433,10 @@ function loadCustomEmoticonList()
 	var listUrl = 'https://dl.dropboxusercontent.com/u/12577282/cnd/emoticonList.json';
 	try
 	{
-		jQuery.get(listUrl, function (data)
+		$.get(listUrl, null, function (data)
 		{
-			var emoticonTable = document.getElementById('emoticonTable');
-			while (emoticonTable && emoticonTable.childNodes.length > 0)
-			{
-				emoticonTable.removeChild(emoticonTable.childNodes[0]);
-			}
-			hangoutsPlus.customEmoticonData = JSON.parse(data);
-			hangoutsPlus.customEmoticonData.sort(function (a, b)
+			var emoticons = JSON.parse(data);
+			emoticons.sort(function (a, b)
 			{
 				var left = hangoutsPlus.emoticonHeatmap[a.replacement];
 				var right = hangoutsPlus.emoticonHeatmap[b.replacement];
@@ -2099,17 +2448,17 @@ function loadCustomEmoticonList()
 				if (a.tag > b.tag) return 1;
 				return 0;
 			});
-			for (var i = 0; i < hangoutsPlus.customEmoticonData.length; i++)
+			emoticonManager.clearEmoticons();
+			for (var i = 0; i < emoticons.length; i++)
 			{
-				addEmoticonEntry(hangoutsPlus.customEmoticonData[i]);
+				var emoticon = emoticons[i];
+				emoticonManager.addEmoticon(emoticon.url, emoticon.replacement, emoticon.tag);
 			}
-			addSystemMessage('[hangouts+]: Loaded ' + hangoutsPlus.customEmoticonData.length + ' custom emoticons.');
 		});
 	}
 	catch (exception)
 	{
-		hangoutsPlus.customEmoticonData = [];
-		addSystemMessage('[hangouts+]: Loaded no custom emoticons.');
+		console.log(exception);
 	}
 }
 
@@ -2169,7 +2518,7 @@ function loadCustomSoundsList()
 
 function initializeCustomInterfaceElements()
 {
-	hangoutsPlus.emoticonsPanel = initializeEmoticonsPanel();
+	//hangoutsPlus.emoticonsPanel = initializeEmoticonsPanel();
 	hangoutsPlus.emojiPanel = initializeEmojiPanel();
 	hangoutsPlus.soundsPanel = initializeSoundsPanel();
 	hangoutsPlus.emoticonsChatButton = addCustomChatButton('https://dl.dropboxusercontent.com/u/12577282/cnd/emoticons_icon.png');
@@ -2178,10 +2527,29 @@ function initializeCustomInterfaceElements()
 	initializeTextInputBorder();
 	initializeChatLogBorder();
 
+	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-refresh", "R", "Refresh Emoticons", function (event)
+	{
+		loadCustomEmoticonList();
+	}).element);
+	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-plus", "+", "Add Tab", function (event)
+	{
+		addTab("Tab " + emoticonManager.tabs.length)
+	}).element);
+
+	if (hangoutsPlus.emoticonSaveInfo != null && hangoutsPlus.emoticonSaveInfo.tabs != null && hangoutsPlus.emoticonSaveInfo.tabs.length > 0)
+	{
+		for (var i = 0; i < hangoutsPlus.emoticonSaveInfo.tabs.length; i++)
+		{
+			addTab(hangoutsPlus.emoticonSaveInfo.tabs[i]);
+		}
+		emoticonManager.tabs[0].toggle();
+		emoticonManager.activeIndex = 0;
+	}
+
 	hangoutsPlus.emoticonsChatButton.onclick = function ()
 	{
-		toggleDiv(hangoutsPlus.emoticonsPanel, 'block');
-		applyEmoticonHeatmap();
+		toggleDiv(emoticonManager.element, 'block');
+		//applyEmoticonHeatmap();
 	}
 	hangoutsPlus.emojiChatButton.onclick = function ()
 	{
@@ -2194,9 +2562,9 @@ function initializeCustomInterfaceElements()
 
 	$(document).on('click', function (event)
 	{
-		if (!$(event.target).closest('#emoticonTable').length && !$(event.target).closest(hangoutsPlus.emoticonsChatButton).length)
+		if ($(event.target).closest(hangoutsPlus.textArea).length)
 		{
-			hangoutsPlus.emoticonsPanel.style.display = 'none';
+			emoticonManager.element.style.display = 'none';
 		}
 	});
 
@@ -2234,7 +2602,7 @@ function applyEmoticonHeatmap()
 	}
 }
 
-function addEmoticonEntry(emote)
+/*function addEmoticonEntry(emote)
 {
 	var container = document.createElement('div');
 	var image = document.createElement('img');
@@ -2255,25 +2623,17 @@ function addEmoticonEntry(emote)
 	container.appendChild(image);
 	container.style.display = 'inline';
 	document.getElementById('emoticonTable').appendChild(container);
-}
+}*/
 
 function initializeEmoticonsPanel()
 {
 	var panel = document.createElement('div');
-	panel.id = 'emoticonTable';
-	panel.style.width = '500px';
-	panel.style.height = '400px';
-	panel.style.position = 'fixed';
-	panel.style.right = '60px';
-	panel.style.bottom = '20px';
-	panel.style.marginLeft = '-500px';
-	panel.style.marginTop = '-400px';
-	panel.style.backgroundColor = '#fff';
-	panel.style.zIndex = '9001';
-	panel.style.border = '1px solid #666';
-	panel.style.overflowY = 'auto';
-	panel.style.overflowX = 'hidden';
-	panel.style.display = 'none';
+	panel.id = 'emoticonManager';
+
+	var tabHeader = document.createElement("div");
+	tabHeader.className = "tabHeader";
+	panel.appendChild(tabHeader);
+
 	document.body.appendChild(panel);
 	return panel;
 }
@@ -2438,12 +2798,12 @@ function initializeChatLogBorder()
 
 function toggleDiv(element, standardDisplay)
 {
-	if (element.style.display === 'none')
+	if (element.style.display == standardDisplay)
 	{
-		element.style.display = standardDisplay;
+		element.style.display = "none";
 	}
 	else
 	{
-		element.style.display = 'none';
+		element.style.display = standardDisplay;
 	}
 }
