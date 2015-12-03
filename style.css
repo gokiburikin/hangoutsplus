@@ -23,6 +23,7 @@ html
   margin-top: -400px;  
   display: none;
   z-index: 9001;
+  width: 600px;
 }
 
 .tabHeader
@@ -119,10 +120,15 @@ html
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
-  font-size: 10px;
+  font-size: 12px;
   top: -2px;
   display: inline-block;
   float: left;
+}
+
+.tab:hover .tabAlias
+{
+  text-decoration: underline;
 }
 
 .tab.active
@@ -136,7 +142,7 @@ html
 {
   background-color: #FFF;
   overflow-y: auto;
-  height: 256px;
+  height: 380px;
   width: 100%;
   z-index: 0;
 }
