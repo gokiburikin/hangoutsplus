@@ -120,7 +120,6 @@ html
   white-space: nowrap;
   overflow: hidden;
   font-size: 12px;
-  top: -2px;
   display: inline-block;
   float: left;
 }
@@ -223,4 +222,36 @@ html
   transform: translate(-50%, -50%);
   position: absolute;
   z-index: 0;
+}
+
+#soundsTable, #emojiTable
+{
+	width: 600px;
+	height: 400px;
+	position: fixed;
+	right: 225px;
+	bottom: 0px;
+	marginLeft: -500px;
+	marginTop: -400px;
+	backgroundColor: #FFF;
+	zIndex: 9001;
+	overflowY: auto;
+	overflowX: hidden;
+	display: none;
+}
+
+.soundEntry, .emojiEntry
+{
+	cursor: pointer;
+	padding: 4px;
+	border: 1px solid #666;
+	display: inline-block;
+	width: 100%;
+	fontSize: 12px;
+	lineHeight: 20px;
+}
+
+.emojiEntry
+{
+	width: 50%;
 }

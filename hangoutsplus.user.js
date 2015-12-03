@@ -2693,13 +2693,7 @@ function initializeEmoticonsPanel()
 function addEmojiEntry(emoji)
 {
 	var link = document.createElement('div');
-	link.style.cursor = 'pointer';
-	link.style.padding = '4px';
-	link.style.border = '1px solid #666';
-	link.style.display = 'inline-block';
-	link.style.width = '30%';
-	link.style.fontSize = '12px';
-	link.style.lineHeight = '20px';
+	link.className = "emojiEntry";
 	link.appendChild(document.createTextNode(emoji));
 	link.onclick = function (event)
 	{
@@ -2714,19 +2708,6 @@ function initializeEmojiPanel()
 {
 	var panel = document.createElement('div');
 	panel.id = 'emojiTable';
-	panel.style.width = '500px';
-	panel.style.height = '400px';
-	panel.style.position = 'fixed';
-	panel.style.right = '40px';
-	panel.style.bottom = '20px';
-	panel.style.marginLeft = '-500px';
-	panel.style.marginTop = '-400px';
-	panel.style.backgroundColor = '#fff';
-	panel.style.zIndex = '9001';
-	panel.style.border = '1px solid #666';
-	panel.style.overflowY = 'auto';
-	panel.style.overflowX = 'hidden';
-	panel.style.display = 'none';
 	document.body.appendChild(panel);
 	return panel;
 }
@@ -2734,13 +2715,7 @@ function initializeEmojiPanel()
 function addSoundsEntry(sound)
 {
 	var link = document.createElement('div');
-	link.style.cursor = 'pointer';
-	link.style.padding = '4px';
-	link.style.border = '1px solid #666';
-	link.style.display = 'inline-block';
-	link.style.width = '30%';
-	link.style.fontSize = '12px';
-	link.style.lineHeight = '20px';
+	link.className = "soundEntry";
 	link.title = sound.pattern;
 	link.sound = sound;
 	link.update = function ()
@@ -2800,19 +2775,6 @@ function initializeSoundsPanel()
 {
 	var panel = document.createElement('div');
 	panel.id = 'soundsTable';
-	panel.style.width = '500px';
-	panel.style.height = '400px';
-	panel.style.position = 'fixed';
-	panel.style.right = '20px';
-	panel.style.bottom = '20px';
-	panel.style.marginLeft = '-500px';
-	panel.style.marginTop = '-400px';
-	panel.style.backgroundColor = '#fff';
-	panel.style.zIndex = '9001';
-	panel.style.border = '1px solid #666';
-	panel.style.overflowY = 'auto';
-	panel.style.overflowX = 'hidden';
-	panel.style.display = 'none';
 	document.body.appendChild(panel);
 	return panel;
 }
