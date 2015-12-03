@@ -14,10 +14,15 @@ html
 
 #emoticonManager
 {
-  width: 100%;
   background-color: #FFF;
   border: 1px solid #66F;
-  position: relative;
+  position: fixed;
+  right: 60px;
+  bottom: 20px;
+  margin-left: -500px;
+  margin-top: -400px;  
+  display: none;
+  z-index: 9001;
 }
 
 .tabHeader
