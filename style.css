@@ -150,8 +150,8 @@ html
 .emoticonEntry
 {
   position: relative;
-  width: 50px;
-  height: 50px;
+  width: 75px;
+  height: 75px;
   margin: 2px 0 0 2px;
   display: inline-block;
 }
