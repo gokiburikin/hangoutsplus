@@ -3,17 +3,17 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.29
+// @version     3.30
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
-// @resource 	style2 https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/style.css
+// @resource 	style https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/style.css
 // @downloadURL https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js
 // @grant		GM_addStyle
 // @grant		GM_getResourceText
 // ==/UserScript==
 // TODO: Just run the command when clicking sound buttons
 
-var newCSS = GM_getResourceText("style2");
+var newCSS = GM_getResourceText("style");
 GM_addStyle(newCSS);
 
 // User preferences
@@ -23,7 +23,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.29;
+hangoutsPlus.scriptVersion = 3.30;
 
 function initializeVariables()
 {
@@ -363,11 +363,20 @@ function removeTab(index)
 	if (emoticonManager.tabs.length > index)
 	{
 		var tab = emoticonManager.tabs[index];
+
+		for (var i = 0; i < tab.page.entries.length; i++)
+		{
+			var entry = tab.page.entries[i];
+			hangoutsPlus.emoticonSaveInfo.emoticons[entry.replacement] = null;
+		}
 		$("#emoticonManager .tabHeader")[0].removeChild(tab.header);
 		emoticonManager.element.removeChild(tab.page.element);
 		hangoutsPlus.emoticonSaveInfo.tabs.splice(index, 1);
 		emoticonManager.tabs.splice(index, 1);
-		emoticonManager.activeIndex--;
+		if (emoticonManager.activeIndex > 0)
+		{
+			emoticonManager.activeIndex--;
+		}
 		emoticonManager.tabs[emoticonManager.activeIndex].toggle();
 		for (var i = index; i < emoticonManager.tabs.length; i++)
 		{
@@ -405,7 +414,7 @@ function createTab(text)
 	{
 		if (emoticonManager.activeIndex != tab.index)
 		{
-			if (getTab(emoticonManager.activeIndex) != null)
+			if (getTab(emoticonManager.activeIndex) != null && getTab(emoticonManager.activeIndex).active)
 			{
 				getTab(emoticonManager.activeIndex).toggle();
 			}
@@ -454,13 +463,10 @@ function createTab(text)
 			event.stopPropagation();
 		});
 
-	addHeaderButton("fa fa-close", "X", "Delete this page (only when empty)",
+	addHeaderButton("fa fa-close", "X", "Delete this page (relocates emoticons)",
 		function (event)
 		{
-			if (tab.page.entries.length == 0)
-			{
-				removeTab(tab.index);
-			}
+			removeTab(tab.index);
 			event.stopPropagation();
 		});
 
@@ -782,11 +788,11 @@ var chatObserver = new MutationObserver(function (mutations)
 					// See lastMessageObserver
 					if (node.classList.contains('Kc-we'))
 					{
-						lastMessageNode = node;
+						hangoutsPlus.lastMessageNode = node;
 						lastMessageObserver.disconnect();
-						if (lastMessageNode && lastMessageNode.firstChild && lastMessageNode.firstChild.childNodes.length > 0 && lastMessageNode.firstChild.childNodes[1])
+						if (hangoutsPlus.lastMessageNode && hangoutsPlus.lastMessageNode.firstChild && hangoutsPlus.lastMessageNode.firstChild.childNodes.length > 0 && hangoutsPlus.lastMessageNode.firstChild.childNodes[1])
 						{
-							lastMessageObserver.observe(lastMessageNode.firstChild.childNodes[1],
+							lastMessageObserver.observe(hangoutsPlus.lastMessageNode.firstChild.childNodes[1],
 							{
 								attributes: true,
 								childList: true,
@@ -818,7 +824,7 @@ var lastMessageObserver = new MutationObserver(function (mutations)
 			var node = mutation.addedNodes[i];
 			// The handleNewMessage functions contains edits that can be done even if it's not the first time a user speaks
 			node.messageContainer = node;
-			node.senderContainer = lastMessageNode.senderContainer;
+			node.senderContainer = hangoutsPlus.lastMessageNode.senderContainer;
 			handleNewMessage(node);
 		}
 		scrollFix();
@@ -2453,6 +2459,7 @@ function loadCustomEmoticonList()
 				if (a.tag > b.tag) return 1;
 				return 0;
 			});
+			emoticonManager.fallbackTab = null;
 			emoticonManager.clearEmoticons();
 			emoticonManager.selectedEmoticons = {};
 			for (var i = 0; i < hangoutsPlus.customEmoticonData.length; i++)
@@ -2536,10 +2543,12 @@ function initializeCustomInterfaceElements()
 	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-refresh", "R", "Refresh Emoticons", function (event)
 	{
 		loadCustomEmoticonList();
+		savePreferences();
 	}).element);
 	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-plus", "+", "Add Tab", function (event)
 	{
 		addTab("Tab " + emoticonManager.tabs.length)
+		savePreferences();
 	}).element);
 	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-plus", "▴", "Increase Thumbnail Size", function (event)
 	{
