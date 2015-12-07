@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.30
+// @version     3.31
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @resource 	style https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/style.css
@@ -23,7 +23,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.30;
+hangoutsPlus.scriptVersion = 3.31;
 
 function initializeVariables()
 {
@@ -303,11 +303,15 @@ emoticonManager.addEmoticon = function (url, replacement)
 	var shouldFallback = true;
 	if (hangoutsPlus.emoticonSaveInfo.emoticons && hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement] != null)
 	{
-		if (emoticonManager.tabs.length > hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab)
+		if (hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab && emoticonManager.tabs.length > hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab)
 		{
 			var page = getTab(hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab).page;
 			page.addEmoticonEntry(emoticon.replacement);
 			shouldFallback = false;
+		}
+		else
+		{
+			hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement] = null;
 		}
 	}
 	if (shouldFallback)
@@ -315,7 +319,7 @@ emoticonManager.addEmoticon = function (url, replacement)
 		if (emoticonManager.fallbackTab == null)
 		{
 			emoticonManager.fallbackTab = addTab("Unorganized");
-			if (emoticonManager.tabs.length == 1)
+			if (emoticonManager.tabs.length == 1 && !emoticonManager.fallbackTab.active)
 			{
 				emoticonManager.fallbackTab.toggle();
 				emoticonManager.activeIndex = 0;
@@ -360,9 +364,13 @@ function addTab(name)
 
 function removeTab(index)
 {
-	if (emoticonManager.tabs.length > index)
+	if (emoticonManager.tabs.length > index && emoticonManager.tabs.length > 1)
 	{
 		var tab = emoticonManager.tabs[index];
+		if (tab == emoticonManager.fallbackTab)
+		{
+			emoticonManager.fallbackTab = null;
+		}
 
 		for (var i = 0; i < tab.page.entries.length; i++)
 		{
@@ -390,6 +398,8 @@ function removeTab(index)
 				}
 			}
 			tab.index--;
+			tab.page.index--;
+			tab.page.element.id = "tabPage_" + tab.index;
 		}
 		savePreferences();
 	}
@@ -458,6 +468,10 @@ function createTab(text)
 			if (str.length > 0)
 			{
 				tab.rename(str);
+				if (tab == emoticonManager.fallbackTab)
+				{
+					emoticonManager.fallbackTab = null;
+				}
 			}
 			savePreferences();
 			event.stopPropagation();
@@ -467,6 +481,7 @@ function createTab(text)
 		function (event)
 		{
 			removeTab(tab.index);
+			savePreferences();
 			event.stopPropagation();
 		});
 
@@ -560,7 +575,7 @@ function createTabPage(index)
 			{
 				hangoutsPlus.emoticonSaveInfo.emoticons[replacement] = {};
 			}
-			hangoutsPlus.emoticonSaveInfo.emoticons[replacement].tab = index;
+			hangoutsPlus.emoticonSaveInfo.emoticons[replacement].tab = page.index;
 		}
 	}
 
@@ -589,7 +604,7 @@ function createEmoticonEntry(replacement)
 {
 	if (emoticonManager.getEmoticon(replacement) == null)
 	{
-		console.log("missing emoticon requested: " + replacement);
+		console.log("[hangouts+] Missing emoticon requested: " + replacement);
 		return;
 	}
 
@@ -618,7 +633,7 @@ function createEmoticonEntry(replacement)
 		event.stopPropagation();
 	}
 
-	toggleButton.appendChild(createFontIcon("fa fa-check", "C"));
+	toggleButton.appendChild(createFontIcon("fa fa-check", "*"));
 
 	//controls.appendChild(favoriteButton);
 	controls.appendChild(toggleButton);
@@ -2459,7 +2474,6 @@ function loadCustomEmoticonList()
 				if (a.tag > b.tag) return 1;
 				return 0;
 			});
-			emoticonManager.fallbackTab = null;
 			emoticonManager.clearEmoticons();
 			emoticonManager.selectedEmoticons = {};
 			for (var i = 0; i < hangoutsPlus.customEmoticonData.length; i++)
