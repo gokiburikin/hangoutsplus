@@ -3,7 +3,7 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.31
+// @version     3.32
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @resource 	style https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/style.css
@@ -23,7 +23,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.31;
+hangoutsPlus.scriptVersion = 3.32;
 
 function initializeVariables()
 {
@@ -87,6 +87,8 @@ function initializeVariables()
 
 	hangoutsPlus.emoticonSaveInfo = {};
 	hangoutsPlus.emoticonSaveInfo.thumbnailIndex = 1;
+	hangoutsPlus.emoticonSaveInfo.fallbackTabIndex = null;
+	hangoutsPlus.fallbackTab = null;
 }
 
 // * Do not edit below this line * //
@@ -292,7 +294,6 @@ emoticonManager.activeIndex = -1;
 emoticonManager.element = initializeEmoticonsPanel();
 emoticonManager.emoticons = {};
 emoticonManager.selectedEmoticons = {};
-emoticonManager.fallbackTab = null;
 
 emoticonManager.addEmoticon = function (url, replacement)
 {
@@ -301,9 +302,9 @@ emoticonManager.addEmoticon = function (url, replacement)
 	emoticon.replacement = replacement;
 	emoticonManager.emoticons[replacement] = emoticon;
 	var shouldFallback = true;
-	if (hangoutsPlus.emoticonSaveInfo.emoticons && hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement] != null)
+	if (hangoutsPlus.emoticonSaveInfo.emoticons != null && hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement] != null)
 	{
-		if (hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab && emoticonManager.tabs.length > hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab)
+		if (hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab != null && emoticonManager.tabs.length > hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab)
 		{
 			var page = getTab(hangoutsPlus.emoticonSaveInfo.emoticons[emoticon.replacement].tab).page;
 			page.addEmoticonEntry(emoticon.replacement);
@@ -316,16 +317,17 @@ emoticonManager.addEmoticon = function (url, replacement)
 	}
 	if (shouldFallback)
 	{
-		if (emoticonManager.fallbackTab == null)
+		if (hangoutsPlus.fallbackTab == null)
 		{
-			emoticonManager.fallbackTab = addTab("Unorganized");
-			if (emoticonManager.tabs.length == 1 && !emoticonManager.fallbackTab.active)
+			hangoutsPlus.fallbackTab = addTab("(Auto)");
+			hangoutsPlus.emoticonSaveInfo.fallbackTabIndex = hangoutsPlus.fallbackTab.index;
+			if (emoticonManager.tabs.length == 1 && !hangoutsPlus.fallbackTab.active)
 			{
-				emoticonManager.fallbackTab.toggle();
+				hangoutsPlus.fallbackTab.toggle();
 				emoticonManager.activeIndex = 0;
 			}
 		}
-		emoticonManager.fallbackTab.page.addEmoticonEntry(emoticon.replacement);
+		hangoutsPlus.fallbackTab.page.addEmoticonEntry(emoticon.replacement);
 	}
 }
 
@@ -367,9 +369,9 @@ function removeTab(index)
 	if (emoticonManager.tabs.length > index && emoticonManager.tabs.length > 1)
 	{
 		var tab = emoticonManager.tabs[index];
-		if (tab == emoticonManager.fallbackTab)
+		if (tab == hangoutsPlus.fallbackTab)
 		{
-			emoticonManager.fallbackTab = null;
+			return false;
 		}
 
 		for (var i = 0; i < tab.page.entries.length; i++)
@@ -399,8 +401,13 @@ function removeTab(index)
 			}
 			tab.index--;
 			tab.page.index--;
+			if (tab == hangoutsPlus.fallbackTab)
+			{
+				hangoutsPlus.emoticonSaveInfo.fallbackTabIndex = hangoutsPlus.fallbackTab.index;
+			}
 			tab.page.element.id = "tabPage_" + tab.index;
 		}
+		addMissingEmoticonEntries();
 		savePreferences();
 	}
 }
@@ -455,6 +462,7 @@ function createTab(text)
 					tab2.page.removeEmoticonEntry(key);
 				}
 				tab.page.addEmoticonEntry(key);
+				console.log(key + " moved to " + tab.page.index)
 			}
 			emoticonManager.selectedEmoticons = {};
 			savePreferences();
@@ -567,15 +575,16 @@ function createTabPage(index)
 		{
 			page.entries.push(entry);
 			element.appendChild(entry.element);
-			if (!hangoutsPlus.emoticonSaveInfo.emoticons)
+			if (hangoutsPlus.emoticonSaveInfo.emoticons == null)
 			{
 				hangoutsPlus.emoticonSaveInfo.emoticons = {};
 			}
-			if (!hangoutsPlus.emoticonSaveInfo.emoticons[replacement])
+			if (hangoutsPlus.emoticonSaveInfo.emoticons[replacement] == null)
 			{
 				hangoutsPlus.emoticonSaveInfo.emoticons[replacement] = {};
 			}
 			hangoutsPlus.emoticonSaveInfo.emoticons[replacement].tab = page.index;
+			console.log("added " + replacement + " to page " + page.index);
 		}
 	}
 
@@ -598,6 +607,17 @@ function createTabPage(index)
 	}
 
 	return page;
+}
+
+function addMissingEmoticonEntries()
+{
+	for (var key in emoticonManager.emoticons)
+	{
+		if (hangoutsPlus.emoticonSaveInfo.emoticons[key] == null || hangoutsPlus.emoticonSaveInfo.emoticons[key].tab == null)
+		{
+			hangoutsPlus.fallbackTab.addEmoticonEntry(key);
+		}
+	}
 }
 
 function createEmoticonEntry(replacement)
@@ -2596,7 +2616,11 @@ function initializeCustomInterfaceElements()
 	{
 		for (var i = 0; i < hangoutsPlus.emoticonSaveInfo.tabs.length; i++)
 		{
-			addTab(hangoutsPlus.emoticonSaveInfo.tabs[i]);
+			var newTab = addTab(hangoutsPlus.emoticonSaveInfo.tabs[i]);
+			if (i == hangoutsPlus.emoticonSaveInfo.fallbackTabIndex)
+			{
+				hangoutsPlus.fallbackTab = newTab;
+			}
 		}
 		emoticonManager.tabs[0].toggle();
 		emoticonManager.activeIndex = 0;
