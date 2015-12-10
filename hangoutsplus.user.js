@@ -3,10 +3,11 @@
 // @namespace   https://plus.google.com/hangouts/*
 // @include     https://plus.google.com/hangouts/*
 // @description Improvements to Google Hangouts
-// @version     3.32
+// @version     3.33
 // @require     http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js
 // @require     https://raw.githubusercontent.com/hazzik/livequery/master/dist/jquery.livequery.min.js
 // @resource 	style https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/style.css
+// @resource 	fontawesome https://dl.dropboxusercontent.com/u/12577282/font-awesome-4.5.0/css/font-awesome.css
 // @downloadURL https://raw.githubusercontent.com/gokiburikin/hangoutsplus/master/hangoutsplus.user.js
 // @grant		GM_addStyle
 // @grant		GM_getResourceText
@@ -15,6 +16,20 @@
 
 var newCSS = GM_getResourceText("style");
 GM_addStyle(newCSS);
+newCSS = GM_getResourceText("fontawesome");
+GM_addStyle(newCSS);
+var usingFontAwesome = true;
+if (newCSS != null)
+{
+	if (newCSS.length == 0)
+	{
+		usingFontAwesome = false;
+	}
+}
+else
+{
+	usingFontAwesome = false;
+}
 
 // User preferences
 /* Most of these settings are meant to be edited using the commands while in google hangouts.
@@ -23,7 +38,7 @@ To access a list of commands, enter the command !? into the chat. */
 var hangoutsPlus = {};
 
 // Keeps track of the most up to date version of the script
-hangoutsPlus.scriptVersion = 3.32;
+hangoutsPlus.scriptVersion = 3.33;
 
 function initializeVariables()
 {
@@ -462,7 +477,6 @@ function createTab(text)
 					tab2.page.removeEmoticonEntry(key);
 				}
 				tab.page.addEmoticonEntry(key);
-				console.log(key + " moved to " + tab.page.index)
 			}
 			emoticonManager.selectedEmoticons = {};
 			savePreferences();
@@ -548,7 +562,8 @@ function createTabButton(className, value, title, clickFunction)
 function createFontIcon(className, value)
 {
 	var element = document.createElement("i");
-	if (value != null)
+
+	if (value != null && !usingFontAwesome)
 	{
 		element = document.createElement("span");
 		element.appendChild(document.createTextNode(value));
@@ -584,7 +599,6 @@ function createTabPage(index)
 				hangoutsPlus.emoticonSaveInfo.emoticons[replacement] = {};
 			}
 			hangoutsPlus.emoticonSaveInfo.emoticons[replacement].tab = page.index;
-			console.log("added " + replacement + " to page " + page.index);
 		}
 	}
 
@@ -2584,7 +2598,7 @@ function initializeCustomInterfaceElements()
 		addTab("Tab " + emoticonManager.tabs.length)
 		savePreferences();
 	}).element);
-	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-plus", "▴", "Increase Thumbnail Size", function (event)
+	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-expand", "▴", "Increase Thumbnail Size", function (event)
 	{
 		hangoutsPlus.emoticonSaveInfo.thumbnailIndex++;
 		if (hangoutsPlus.emoticonSaveInfo.thumbnailIndex >= hangoutsPlus.thumbnailSizes.length)
@@ -2598,7 +2612,7 @@ function initializeCustomInterfaceElements()
 		}
 
 	}).element);
-	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-plus", "▾", "Decrease Thumbnail Size", function (event)
+	$("#emoticonManager .tabHeader")[0].appendChild(createTabButton("fa fa-compress", "▾", "Decrease Thumbnail Size", function (event)
 	{
 		hangoutsPlus.emoticonSaveInfo.thumbnailIndex--;
 		if (hangoutsPlus.emoticonSaveInfo.thumbnailIndex < 0)
